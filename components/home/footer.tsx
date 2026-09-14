@@ -21,7 +21,7 @@ const Footer = () => {
           {/* Mobile Links (Grid layout for better thumb reach) */}
           <nav className="grid grid-cols-3 gap-y-4 gap-x-6 text-sm text-[#0E1724] text-center">
             <a href="#about-us" className="hover:text-[#759CC9] transition-colors">Overview</a>
-            <Link href="/founder" className="hover:text-[#759CC9] transition-colors">Our Founder</Link>
+            <Link href="/our-founder" className="hover:text-[#759CC9] transition-colors">Our Founder</Link>
             <a href="#pricing" className="hover:text-[#759CC9] transition-colors">Pricing</a>
             <a href="#contact" className="hover:text-[#759CC9] transition-colors">Contact Us</a>
             <Link href="/terms#privacy" className="hover:text-[#759CC9] transition-colors">Privacy</Link>
@@ -37,7 +37,7 @@ const Footer = () => {
 
           <nav className="flex flex-wrap justify-center gap-6 font-semibold mb-6 text-sm text-[#0E1724] text-center">
             <a href="#about-us" className="hover:underline decoration-[#759CC9] underline-offset-4">Overview</a>
-            <Link href="/founder" className="hover:underline decoration-[#759CC9] underline-offset-4">Our Founder</Link>
+            <Link href="/our-founder" className="hover:underline decoration-[#759CC9] underline-offset-4">Our Founder</Link>
             <a href="#pricing" className="hover:underline decoration-[#759CC9] underline-offset-4">Pricing</a>
             <a href="#contact" className="hover:underline decoration-[#759CC9] underline-offset-4">Contact Us</a>
             <Link href="/terms#privacy" className="hover:underline decoration-[#759CC9] underline-offset-4">Privacy</Link>

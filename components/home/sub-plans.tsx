@@ -246,7 +246,7 @@ const SubscriptionPlans = () => {
           </div>
 
           <div className="flex flex-col gap-8 px-4 md:px-6 lg:flex-row">
-            <div className="w-full rounded-3xl bg-[#6F8FB3] p-8 text-white shadow-lg lg:w-[30%]">
+            <div className="w-full rounded-3xl bg-[#759CC9] p-8 text-white shadow-lg lg:w-[30%]">
               <div className="mb-6 grid grid-cols-3 text-sm font-semibold">
                 <span>Package</span>
                 <span className="text-center">Employees</span>

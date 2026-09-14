@@ -50,7 +50,7 @@ const AboutSection = () => {
               </p>
             </div>
             <div className="flex justify-center order-1 md:order-2">
-              <Image src="/images/mobile(full)-x.png" alt="Booqly App" width={304} height={600} className="w-52 md:w-76 relative z-20" />
+              <Image src="/images/mobile-full-x.png" alt="Booqly App" width={304} height={600} className="w-52 md:w-76 relative z-20" />
             </div>
           </div>
         </div>
