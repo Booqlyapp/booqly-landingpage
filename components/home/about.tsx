@@ -27,15 +27,15 @@ const AboutSection = () => {
         <div className="max-w-7xl mx-auto relative z-10">
           {/* Top Intro */}
           <div className="text-center mb-6">
-            <p className="text-[#759CC9] font-semibold font-inter text-2xl md:text-[30px] md:mb-2">
+            <p className="text-[#759CC9] font-semibold font-inter text-2xl max-[421px]:text-xl md:text-[30px] md:mb-2">
               Beauty Booking. Made Simple.
             </p>
-            <h2 className="text-3xl md:text-5xl font-bold text-[#0E1724] mb-6">
+            <h2 className="text-3xl max-[421px]:text-2xl md:text-5xl font-bold text-[#0E1724] mb-6">
               About Booqly
             </h2>
           </div>
 
-          <p className="text-[#1E1E1E] leading-relaxed max-w-5xl mx-auto text-center mb-12 font-inter font-light text-base md:text-lg">
+          <p className="text-[#1E1E1E] leading-relaxed max-w-5xl mx-auto text-center mb-12 font-inter font-light text-base max-[421px]:text-sm md:text-lg">
             Booqly is a beauty booking platform created to simplify how clients discover 
             professionals and how beauty pros and suite owners manage and grow their businesses.
           </p>
@@ -43,7 +43,7 @@ const AboutSection = () => {
           {/* Grid: Client Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 items-center gap-12">
             <div className="order-2 md:order-1 md:-mt-20">
-              <p className="text-[#1E1E1E] leading-relaxed font-light text-base md:text-lg text-center md:text-left">
+              <p className="text-[#1E1E1E] leading-relaxed font-light text-base max-[421px]:text-sm md:text-lg text-center md:text-left">
                 For clients, Booqly offers verified reviews, ID-verified professionals, and a smooth, 
                 secure booking experience that prioritizes your time and your trust. From your first 
                 visit to your forever stylist, it helps you discover professionals you can rely on.
@@ -67,7 +67,7 @@ const AboutSection = () => {
 
           {/* Right: Text Content */}
           <div className="flex justify-center md:justify-center md:mt-28 relative z-10">
-            <p className="text-[#1E1E1E] text-base md:text-lg font-inter font-light leading-relaxed text-center w-full">
+            <p className="text-[#1E1E1E] text-base max-[421px]:text-sm md:text-lg font-inter font-light leading-relaxed text-center w-full">
               For solo beauty professionals, Booqly is more than a booking system. It 
               gives you another platform to be seen beyond your own social media.  
               You can grow your brand, build your portfolio, and manage your business 
@@ -105,7 +105,7 @@ const AboutSection = () => {
 
           {/* Left: Text Content */}
           <div className="flex justify-center md:mt-65 order-2 md:order-1">
-            <p className="text-[#1E1E1E] leading-relaxed text-center md:text-left font-light font-inter sm:text-base md:text-lg w-[90%] sm:w-[95%] md:w-full md:max-w-xl">
+            <p className="text-[#1E1E1E] leading-relaxed text-center md:text-left font-light font-inter text-base max-[421px]:text-sm md:text-lg w-[90%] sm:w-[95%] md:w-full md:max-w-xl">
               For salon suite owners, Booqly helps you run your space with confidence.
               You can manage your team, track performance, organize bookings, and grow
               your business with purpose and structure.
@@ -115,7 +115,7 @@ const AboutSection = () => {
 
         {/* Bottom Closing Statement */}
         <div className="max-w-7xl mx-auto mt-16 md:ml-30 text-center relative z-10 px-4 md:px-0">
-          <p className="text-[#1E1E1E] leading-relaxed text-[15px] sm:text-base md:text-lg font-light font-inter w-[90%] sm:w-[95%] md:w-auto mx-auto">
+          <p className="text-[#1E1E1E] leading-relaxed text-[15px] max-[421px]:text-xs sm:text-base md:text-lg font-light font-inter w-[90%] sm:w-[95%] md:w-auto mx-auto">
             Everything you see in Booqly comes from real experience.
             Every feature has a purpose and every tool solves a problem.
           </p>

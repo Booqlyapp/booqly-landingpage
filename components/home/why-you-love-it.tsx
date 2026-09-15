@@ -32,7 +32,7 @@ const WhyYouLoveIt = () => {
                     className="w-8 h-8 md:w-10 md:h-10"
                   />
                 </div>
-                <span className="text-base md:text-lg lg:text-xl text-[#1E1E1E] font-light">
+                <span className="text-base max-[421px]:text-sm md:text-lg lg:text-xl text-[#1E1E1E] font-light">
                   {feature}
                 </span>
               </div>
@@ -55,13 +55,13 @@ const WhyYouLoveIt = () => {
 
         {/* Right Column (Heading + Description + CTAs) - Appears first on mobile */}
         <div className="text-center lg:text-left order-1 lg:order-3 lg:pl-8">
-          <p className="text-[#759CC9] font-semibold text-lg md:text-xl mb-4 tracking-wide">
+          <p className="text-[#759CC9] font-semibold text-lg max-[421px]:text-base md:text-xl mb-4 tracking-wide">
             Features
           </p>
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-[#0E1724]">
+          <h2 className="text-2xl max-[421px]:text-xl md:text-3xl lg:text-4xl font-bold text-[#0E1724]">
             Why You’ll Love It
           </h2>
-          <div className="mt-6 text-[#1E1E1E] text-sm md:text-[16px] lg:text-[18px] leading-relaxed font-light max-w-md mx-auto lg:mx-0">
+          <div className="mt-6 text-[#1E1E1E] text-sm max-[421px]:text-xs md:text-[16px] lg:text-[18px] leading-relaxed font-light max-w-md mx-auto lg:mx-0">
             <p>
               Verified clients and pros, secure payments, and dual reviews you can trust.
             </p>

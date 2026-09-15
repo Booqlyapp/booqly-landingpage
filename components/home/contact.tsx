@@ -44,11 +44,11 @@ const ContactSection = () => {
         
         {/* Left Side */}
         <div className="flex-1 w-full">
-          <h2 className="text-3xl text-center md:text-start md:text-7xl font-semibold font-inter text-[#0E1724] md:-mt-15 mb-5">
+          <h2 className="text-3xl max-[421px]:text-[24px] text-center md:text-start md:text-7xl font-semibold font-inter text-[#0E1724] md:-mt-15 mb-5">
             Get In Touch
           </h2>
 
-          <p className="text-[#1E1E1E] text-center md:text-left text-[16px] md:text-[20px] font-light mb-8 leading-relaxed">
+          <p className="text-[#1E1E1E] text-center md:text-left text-[16px] max-[421px]:text-sm md:text-[20px] font-light mb-8 leading-relaxed">
             Questions or requests regarding this Policy
             <br className="block md:hidden" /> can be sent to:
           </p>
@@ -173,10 +173,10 @@ const ContactSection = () => {
         <div className="flex flex-col items-center gap-6">
           <div className="flex items-center gap-2">
              <Image src="/images/sms.svg" alt="Email" width={20} height={20} className="w-5 h-5" />
-             <p className="text-[#0E1724] font-medium">support@booqlyapp.com</p>
+             <p className="text-[#0E1724] font-medium max-[421px]:text-sm">support@booqlyapp.com</p>
           </div>
           <div className="text-center">
-             <p className="text-[#0E1724] font-medium leading-relaxed">
+             <p className="text-[#0E1724] font-medium max-[421px]:text-sm leading-relaxed">
                2086 Jodeco Road #1009, McDonough, GA 30253
              </p>
           </div>

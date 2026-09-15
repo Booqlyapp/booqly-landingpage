@@ -9,10 +9,10 @@ const DownloadCTA = () => {
       <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 grid grid-cols-1 lg:grid-cols-2 items-center lg:items-end gap-12 relative">
         {/* Left Content */}
         <div className="text-center lg:text-left relative order-1 lg:order-none z-10 lg:pb-16">
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-semibold text-[#0E1724] mb-6">
+          <h2 className="text-3xl max-[421px]:text-[24px] sm:text-4xl lg:text-5xl font-semibold text-[#0E1724] mb-6">
             Download app today!
           </h2>
-          <p className="text-[#1E1E1E] text-base sm:text-lg md:text-xl font-light mb-8 mx-auto lg:mx-0 leading-relaxed max-w-xs sm:max-w-sm md:max-w-sm">
+          <p className="text-[#1E1E1E] text-base max-[421px]:text-sm sm:text-lg md:text-xl font-light mb-8 mx-auto lg:mx-0 leading-relaxed max-w-xs sm:max-w-sm md:max-w-sm">
             Download app for Android, iOS & iPadOS today — free trials and paid
             plans available.
           </p>

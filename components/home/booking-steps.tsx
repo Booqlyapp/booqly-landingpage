@@ -53,11 +53,11 @@ export default function BookingSteps() {
         
         {/* Section Heading */}
         <div className="mb-8 sm:mb-16">
-          <h2 className="text-4xl md:text-5xl font-bold text-[#0E1724]">
+          <h2 className="text-4xl max-[454px]:text-[28px] md:text-5xl font-bold text-[#0E1724]">
             Simple steps to book <br />
             <span className="text-[#759CC9]">(For Clients)</span>
           </h2>
-          <p className="text-[#1E1E1E] mt-4 max-w-2xl mx-auto font-light text-lg">
+          <p className="text-[#1E1E1E] mt-4 max-w-2xl mx-auto font-light text-lg max-[421px]:text-base">
             Find verified professionals near you and book with confidence.
           </p>
         </div>
@@ -125,13 +125,13 @@ export default function BookingSteps() {
               </div>
 
               {/* Mobile Card */}
-              <div className="xl:hidden flex items-center w-full bg-white shadow-lg rounded-xl p-4 gap-4">
-                <Image src={step.icon} width={80} height={80} className="flex-shrink-0" alt={step.title} />
-                <div className="flex-1 text-center">
-                  <h3 className="text-xl font-bold text-[#333]">{step.title}</h3>
-                  <p className="text-sm text-[#333] mt-1 leading-snug">{step.desc}</p>
+              <div className="xl:hidden flex items-center w-full bg-white shadow-lg rounded-xl p-4 max-[454px]:p-3 gap-4 max-[454px]:gap-2">
+                <Image src={step.icon} width={80} height={80} className="flex-shrink-0 max-[454px]:w-14 max-[454px]:h-14" alt={step.title} />
+                <div className="flex-1 min-w-0 text-center">
+                  <h3 className="text-xl max-[454px]:text-[15px] max-[454px]:whitespace-nowrap font-bold text-[#333]">{step.title}</h3>
+                  <p className="text-sm max-[421px]:text-xs text-[#333] mt-1 leading-snug">{step.desc}</p>
                 </div>
-                <span className="text-3xl font-bold text-[#759CC9] flex-shrink-0">{step.id}</span>
+                <span className="text-3xl max-[454px]:text-2xl font-bold text-[#759CC9] flex-shrink-0">{step.id}</span>
               </div>
             </div>
           ))}

@@ -139,11 +139,11 @@ const PlanCard = ({ plan }: { plan: Plan }) => {
         </span>
       ) : null}
 
-      <h3 className={`text-[17px] font-semibold ${plan.badge ? "pr-24" : ""}`}>
+      <h3 className={`text-[17px] max-[421px]:text-[15px] font-semibold ${plan.badge ? "pr-24" : ""}`}>
         {plan.name}
       </h3>
 
-      <p className="mt-3 text-[20px] font-bold leading-tight">{plan.price}</p>
+      <p className="mt-3 text-[20px] max-[421px]:text-[18px] font-bold leading-tight">{plan.price}</p>
 
       {plan.save ? (
         <p
@@ -160,7 +160,7 @@ const PlanCard = ({ plan }: { plan: Plan }) => {
           <li key={feature.text} className="flex items-start gap-2.5">
             <CheckIcon featured={featured} />
             <div className="min-w-0">
-              <p className="text-[14px] leading-snug">{feature.text}</p>
+              <p className="text-[14px] max-[421px]:text-[13px] leading-snug">{feature.text}</p>
               {feature.note ? (
                 <p
                   className={`mt-0.5 text-[11px] leading-snug ${
@@ -206,10 +206,10 @@ const SubscriptionPlans = () => {
       >
         <SwiperSlide>
           <div className="mb-6 text-center">
-            <h2 className="mb-4 text-4xl font-semibold text-[#0E1724]">
-              Client Subscription plans
+            <h2 className="mb-4 text-4xl max-[421px]:text-[28px] font-semibold text-[#0E1724]">
+              Client Subscription Plans
             </h2>
-            <p className="mx-auto max-w-5xl text-lg font-light text-[#1E1E1E]">
+            <p className="mx-auto max-w-5xl text-lg max-[421px]:text-base font-light text-[#1E1E1E]">
               Book your favorite beauty services in seconds, while professionals manage and grow their business with ease.
             </p>
           </div>
@@ -220,10 +220,10 @@ const SubscriptionPlans = () => {
 
         <SwiperSlide>
           <div className="mb-6 text-center">
-            <h2 className="mb-4 text-4xl font-semibold text-[#0E1724]">
-              Professional Subscription plans
+            <h2 className="mb-4 text-4xl max-[421px]:text-[28px] font-semibold text-[#0E1724]">
+              Professional Subscription Plans
             </h2>
-            <p className="mx-auto max-w-5xl text-lg font-light text-[#1E1E1E]">
+            <p className="mx-auto max-w-5xl text-lg max-[421px]:text-base font-light text-[#1E1E1E]">
               Manage clients, bookings, and payments with ease all in one app.
             </p>
           </div>
@@ -234,26 +234,26 @@ const SubscriptionPlans = () => {
 
         <SwiperSlide>
           <div className="mb-8 text-center">
-            <h2 className="mb-3 text-4xl font-semibold text-[#0E1724]">
-              Beauty Suite Owner Subscription plans
+            <h2 className="mb-3 text-4xl max-[421px]:text-[28px] font-semibold text-[#0E1724]">
+              Beauty Suite Owner Subscription Plans
             </h2>
-            <p className="text-lg font-light text-[#1E1E1E]">
+            <p className="text-lg max-[421px]:text-base font-light text-[#1E1E1E]">
               Salon Suite Owner Free Trial for one month
             </p>
-            <p className="text-lg font-light text-[#1E1E1E]">
+            <p className="text-lg max-[421px]:text-base font-light text-[#1E1E1E]">
               Includes all Premium plan features plus team tools
             </p>
           </div>
 
           <div className="flex flex-col gap-8 px-4 md:px-6 lg:flex-row">
             <div className="w-full rounded-3xl bg-[#759CC9] p-8 text-white shadow-lg lg:w-[30%]">
-              <div className="mb-6 grid grid-cols-3 text-sm font-semibold">
+              <div className="mb-6 grid grid-cols-3 text-sm max-[421px]:text-xs font-semibold">
                 <span>Package</span>
                 <span className="text-center">Employees</span>
                 <span className="text-right">Price</span>
               </div>
 
-              <div className="space-y-6 text-sm">
+              <div className="space-y-6 text-sm max-[421px]:text-xs">
                 {[
                   ["Starter Suite", "1–3", "$49.99"],
                   ["Growing Suite", "4–7", "$74.99"],
@@ -271,13 +271,13 @@ const SubscriptionPlans = () => {
 
             <div className="w-full rounded-3xl border border-gray-200 bg-[#F3F4F6] p-8 lg:w-[70%]">
               <div className="mb-6 grid grid-cols-[minmax(7.5rem,44%)_1fr] border-b border-gray-300 pb-4 md:grid-cols-[30%_70%]">
-                <h3 className="pr-3 font-bold text-[#0E1724] md:pr-4">Category</h3>
-                <h3 className="border-l border-gray-300 pl-3 font-bold text-[#0E1724] md:pl-6">
+                <h3 className="pr-3 font-bold text-[#0E1724] max-[421px]:text-sm md:pr-4">Category</h3>
+                <h3 className="border-l border-gray-300 pl-3 font-bold text-[#0E1724] max-[421px]:text-sm md:pl-6">
                   Details
                 </h3>
               </div>
 
-              <div className="space-y-6 text-sm">
+              <div className="space-y-6 text-sm max-[421px]:text-xs">
                 <FeatureRow
                   label="Premium Plan Inclusion"
                   detail="Includes all Premium Solo Pro features, plus exclusive team tools"
@@ -363,8 +363,8 @@ const SubscriptionPlans = () => {
 
 const FeatureRow = ({ label, detail }: { label: string; detail: React.ReactNode }) => (
   <div className="grid grid-cols-[minmax(7.5rem,44%)_1fr] items-start md:grid-cols-[30%_70%]">
-    <div className="pr-3 font-medium text-[#0E1724] md:pr-4">{label}</div>
-    <div className="border-l border-gray-300 pl-3 leading-relaxed text-[#4B5563] md:pl-6">
+    <div className="pr-3 font-medium text-[#0E1724] max-[421px]:text-xs md:pr-4">{label}</div>
+    <div className="border-l border-gray-300 pl-3 leading-relaxed text-[#4B5563] max-[421px]:text-xs md:pl-6">
       {detail}
     </div>
   </div>

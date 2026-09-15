@@ -61,11 +61,11 @@ const ProfessionalSteps = () => {
         
         {/* Header */}
         <div className="mb-8 sm:mb-20">
-          <h2 className="text-4xl md:text-5xl font-bold text-[#0E1724]">
+          <h2 className="text-4xl max-[454px]:text-[28px] md:text-5xl font-bold text-[#0E1724]">
             Simple steps to Grow <br />
             <span className="text-[#759CC9]">(For Professionals)</span>
           </h2>
-          <p className="text-[#1E1E1E] mt-4 max-w-2xl mx-auto font-light text-lg">
+          <p className="text-[#1E1E1E] mt-4 max-w-2xl mx-auto font-light text-lg max-[421px]:text-base">
             Manage clients, bookings, and payments with ease — all in one app.
           </p>
         </div>
@@ -134,25 +134,25 @@ const ProfessionalSteps = () => {
 
               {/* Mobile Card */}
               <div
-                className="xl:hidden flex items-center w-full shadow-lg rounded-xl p-4 gap-4"
+                className="xl:hidden flex items-center w-full shadow-lg rounded-xl p-4 max-[454px]:p-3 gap-4 max-[454px]:gap-2"
                 style={{ backgroundColor: step.hexColor }}
               >
                 <Image
                   src={step.icon}
                   width={80}
                   height={80}
-                  className="w-20 h-20 flex-shrink-0"
+                  className="w-20 h-20 max-[454px]:w-14 max-[454px]:h-14 flex-shrink-0"
                   alt={step.title}
                 />
-                <div className="flex-1 text-center">
-                  <h4 className="text-xl font-bold text-white">
+                <div className="flex-1 min-w-0 text-center">
+                  <h4 className="text-xl max-[454px]:text-[15px] max-[454px]:whitespace-nowrap font-bold text-white">
                     {step.title}
                   </h4>
-                  <p className="text-sm text-white mt-1 leading-snug">
+                  <p className="text-sm max-[421px]:text-xs text-white mt-1 leading-snug">
                     {step.desc}
                   </p>
                 </div>
-                <span className="text-3xl font-bold text-black flex-shrink-0">
+                <span className="text-3xl max-[454px]:text-2xl font-bold text-black flex-shrink-0">
                   {step.id}
                 </span>
               </div>

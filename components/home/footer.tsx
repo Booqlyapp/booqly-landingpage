@@ -19,7 +19,7 @@ const Footer = () => {
           </div>
 
           {/* Mobile Links (Grid layout for better thumb reach) */}
-          <nav className="grid grid-cols-3 gap-y-4 gap-x-6 text-sm text-[#0E1724] text-center">
+          <nav className="grid grid-cols-3 gap-y-4 gap-x-6 text-sm max-[421px]:text-xs text-[#0E1724] text-center">
             <a href="#about-us" className="hover:text-[#759CC9] transition-colors">Overview</a>
             <Link href="/our-founder" className="hover:text-[#759CC9] transition-colors">Our Founder</Link>
             <a href="#pricing" className="hover:text-[#759CC9] transition-colors">Pricing</a>

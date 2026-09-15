@@ -52,14 +52,14 @@ export default function Home() {
 
           {/* Right: Text Content */}
           <div className="relative z-10 text-center lg:text-left space-y-6 order-1 lg:order-2">
-            <p className="text-lg font-medium text-[#759CC9] tracking-wide">
+            <p className="text-lg max-[421px]:text-base font-medium text-[#759CC9] tracking-wide">
               Welcome to Booqly
             </p>
-            <h1 className="text-4xl md:text-6xl font-extrabold text-[#0E1724] leading-tight">
+            <h1 className="text-4xl max-[421px]:text-[28px] md:text-6xl font-extrabold text-[#0E1724] leading-tight">
               Beauty Booking.<br />
               <span className="">Made Simple.</span>
             </h1>
-            <p className="text-[#1E1E1E] text-base md:text-lg max-w-md mx-auto lg:mx-0 font-light leading-relaxed">
+            <p className="text-[#1E1E1E] text-base max-[421px]:text-sm md:text-lg max-w-md mx-auto lg:mx-0 font-light leading-relaxed">
               Your trusted beauty marketplace connecting clients with solo pros and salon suite owners.
             </p>
 
