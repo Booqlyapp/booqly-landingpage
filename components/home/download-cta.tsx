@@ -5,7 +5,7 @@ import Image from "next/image";
 
 const DownloadCTA = () => {
   return (
-    <section className="w-full bg-white pt-6 pb-6 sm:pt-10 sm:pb-10 lg:pt-10 lg:pb-0 font-inter relative overflow-x-hidden">
+    <section className="relative z-10 isolate w-full bg-white pt-6 pb-8 sm:pt-10 sm:pb-10 lg:pt-10 lg:pb-8 font-inter overflow-hidden">
       <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 grid grid-cols-1 lg:grid-cols-2 items-center lg:items-end gap-4 sm:gap-8 lg:gap-12 relative">
         {/* Left Content */}
         <div className="text-center lg:text-left relative order-1 lg:order-none z-10 lg:pb-16">
@@ -59,7 +59,7 @@ const DownloadCTA = () => {
             alt="Download Booqly App"
             width={1060}
             height={1057}
-            className="w-[90%] sm:w-[85%] lg:w-full h-auto z-10 lg:-ml-15 lg:mb-0 block"
+            className="w-[90%] sm:w-[85%] lg:w-full h-auto relative z-0 lg:-ml-15 lg:mb-0 block"
           />
 
           {/* Big Background Shape (Behind Mockups) */}

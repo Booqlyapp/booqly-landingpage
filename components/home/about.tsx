@@ -7,7 +7,7 @@ const AboutSection = () => {
   return (
     <>
       {/* ================= SECTION 1: ABOUT & CLIENTS ================= */}
-      <section id="about-us" className="relative bg-white pt-6 pb-10 md:py-20 px-6 md:px-16 overflow-hidden md:overflow-visible">
+      <section id="about-us" className="relative z-0 isolate bg-white pt-6 pb-10 md:py-20 px-6 md:px-16 overflow-hidden md:overflow-visible">
         {/* Background Shapes */}
         <Image 
           src="/images/Ellipse-no-5.svg" 
