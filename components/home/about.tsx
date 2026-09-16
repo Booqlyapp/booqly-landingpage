@@ -7,14 +7,14 @@ const AboutSection = () => {
   return (
     <>
       {/* ================= SECTION 1: ABOUT & CLIENTS ================= */}
-      <section id="about-us" className="relative bg-white pt-6 pb-10 md:py-20 px-6 md:px-16 overflow-hidden">
+      <section id="about-us" className="relative bg-white pt-6 pb-10 md:py-20 px-6 md:px-16 overflow-hidden md:overflow-visible">
         {/* Background Shapes */}
         <Image 
           src="/images/Ellipse-no-5.svg" 
           alt="Decoration" 
           width={256}
           height={256}
-          className="absolute -bottom-[20%] md:bottom-20 left-0 w-48 md:w-64 opacity-100 pointer-events-none select-none z-[1]" 
+          className="absolute -bottom-[20%] md:bottom-20 left-0 w-48 md:w-64 opacity-100 pointer-events-none select-none z-[1] max-[481px]:hidden" 
         />
         <Image 
           src="/images/Star-no-1.svg" 

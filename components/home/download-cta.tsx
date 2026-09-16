@@ -39,26 +39,15 @@ const DownloadCTA = () => {
             </a>
           </div>
 
-          {/* Small Background Shape (Floating behind text/buttons) */}
           <div
-            className="absolute top-[80%] left-[-20%] sm:top-[70%] sm:left-[15%] lg:top-[55%] md:left-[90%] lg:left-[18%] 
-                          w-[850px] sm:w-[380px] md:w-[480px] h-[300px] sm:h-[240px] md:h-[280px] z-[-1] opacity-90 pointer-events-none"
+            className="hidden"
           >
-            {/* Mobile Shape */}
-            <Image
-              src="/images/Ellipse-6.svg"
-              alt="Background Shape Small Mobile"
-              width={850}
-              height={300}
-              className="block sm:hidden w-full h-full object-contain"
-            />
-            {/* Tablet & Desktop Shape */}
             <Image
               src="/images/Ellipse-3.svg"
-              alt="Background Shape Small"
+              alt=""
               width={480}
               height={280}
-              className="hidden sm:block w-[80%] h-full object-contain"
+              className="w-[80%] h-full object-contain"
             />
           </div>
         </div>

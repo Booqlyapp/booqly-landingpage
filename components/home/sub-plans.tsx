@@ -276,9 +276,9 @@ const SubscriptionPlans = () => {
             </div>
 
             <div className="w-full rounded-3xl border border-gray-200 bg-[#F3F4F6] p-8 max-[481px]:px-4 max-[481px]:py-6 lg:w-[70%]">
-              <div className="mb-6 grid grid-cols-[minmax(7.5rem,44%)_1fr] max-[481px]:grid-cols-[minmax(0,30%)_minmax(0,1fr)] max-[481px]:gap-x-2 border-b border-gray-300 pb-4 md:grid-cols-[30%_70%]">
+              <div className="mb-6 grid grid-cols-[minmax(7.5rem,44%)_1fr] max-[481px]:grid-cols-[7.5rem_minmax(0,1fr)] border-b border-gray-300 pb-4 md:grid-cols-[30%_70%]">
                 <h3 className="pr-3 max-[481px]:pr-3 font-bold text-[#0E1724] max-[421px]:text-sm md:pr-4">Category</h3>
-                <h3 className="border-l border-gray-300 pl-3 max-[481px]:pl-3 font-bold text-[#0E1724] max-[421px]:text-sm md:pl-6">
+                <h3 className="border-l border-gray-300 pl-3 max-[481px]:-ml-3 max-[481px]:pl-6 font-bold text-[#0E1724] max-[421px]:text-sm md:ml-0 md:pl-6">
                   Details
                 </h3>
               </div>
@@ -368,9 +368,9 @@ const SubscriptionPlans = () => {
 };
 
 const FeatureRow = ({ label, detail }: { label: string; detail: React.ReactNode }) => (
-  <div className="grid grid-cols-[minmax(7.5rem,44%)_1fr] max-[481px]:grid-cols-[minmax(0,30%)_minmax(0,1fr)] max-[481px]:gap-x-2 items-start md:grid-cols-[30%_70%]">
+  <div className="grid grid-cols-[minmax(7.5rem,44%)_1fr] max-[481px]:grid-cols-[7.5rem_minmax(0,1fr)] items-start md:grid-cols-[30%_70%]">
     <div className="pr-3 max-[481px]:pr-3 font-medium text-[#0E1724] max-[421px]:text-xs md:pr-4">{label}</div>
-    <div className="border-l border-gray-300 pl-3 max-[481px]:pl-3 leading-relaxed text-[#4B5563] max-[421px]:text-xs md:pl-6">
+    <div className="border-l border-gray-300 pl-3 max-[481px]:-ml-3 max-[481px]:pl-6 leading-relaxed text-[#4B5563] max-[421px]:text-xs md:ml-0 md:pl-6">
       {detail}
     </div>
   </div>
