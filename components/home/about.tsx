@@ -80,7 +80,7 @@ const AboutSection = () => {
       </section>
 
       {/* ================= SECTION 3: SUITE OWNERS ================= */}
-      <section className="relative bg-white pt-6 pb-10 md:py-20 lg:py-12 px-4 sm:px-6 md:px-16 md:-mt-40 md:mr-40">
+      <section className="relative bg-white pt-6 pb-10 md:py-20 lg:py-12 px-6 md:px-16 md:-mt-40">
         {/* Background Shapes */}
         <Image 
           src="/images/Ellipse-6.svg" 
@@ -97,10 +97,10 @@ const AboutSection = () => {
           className="hidden md:block absolute -bottom-35 left-[30%] -translate-x-1/2 w-[28rem] md:w-[40rem] opacity-60 pointer-events-none select-none" 
         />
 
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 items-center gap-12 relative z-10">
           {/* Right: Mobile Mockup */}
-          <div className="flex justify-center md:justify-end relative z-20 order-1 md:order-2">
-            <Image src="/images/iphone-4.png" alt="Booqly Openings" width={304} height={600} className="w-56 md:w-76" />
+          <div className="flex justify-center order-1 md:order-2 relative z-20">
+            <Image src="/images/iphone-4.png" alt="Booqly Openings" width={304} height={600} className="w-52 md:w-76" />
           </div>
 
           {/* Left: Text Content */}

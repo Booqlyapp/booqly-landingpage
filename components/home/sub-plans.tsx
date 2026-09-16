@@ -26,8 +26,8 @@ const CLIENT_PLANS: Plan[] = [
     name: "Referral Plan",
     price: "Free",
     features: [
-      { text: "Book Verified Providers", note: "(Limited, Referred Only)" },
-      { text: "Internal Chat", note: "(Limited, Referred Only)" },
+      { text: "Book Verified Providers", note: "(Limited - Referred Only)" },
+      { text: "Internal Chat", note: "(Limited - Referred Only)" },
     ],
   },
   {
@@ -85,7 +85,10 @@ const PROFESSIONAL_PLANS: Plan[] = [
       { text: "Reply to Client Reviews" },
       { text: "Basic Booking Analytics" },
       { text: "Custom Referral Codes" },
-      { text: "Limited Priority Search Ranking (2 ads a month)" },
+      {
+        text: "Limited Priority Search Ranking",
+        note: "(2 ads a month)",
+      },
     ],
   },
   {
@@ -96,7 +99,10 @@ const PROFESSIONAL_PLANS: Plan[] = [
       { text: "Everything in pro" },
       { text: "Advance Booking Analytics" },
       { text: "Beta Tool Access" },
-      { text: "Limited Priority Search Ranking (4 ads a month)" },
+      {
+        text: "Limited Priority Search Ranking",
+        note: "(4 ads a month)",
+      },
     ],
   },
 ];
@@ -269,10 +275,10 @@ const SubscriptionPlans = () => {
               </div>
             </div>
 
-            <div className="w-full rounded-3xl border border-gray-200 bg-[#F3F4F6] p-8 lg:w-[70%]">
-              <div className="mb-6 grid grid-cols-[minmax(7.5rem,44%)_1fr] border-b border-gray-300 pb-4 md:grid-cols-[30%_70%]">
-                <h3 className="pr-3 font-bold text-[#0E1724] max-[421px]:text-sm md:pr-4">Category</h3>
-                <h3 className="border-l border-gray-300 pl-3 font-bold text-[#0E1724] max-[421px]:text-sm md:pl-6">
+            <div className="w-full rounded-3xl border border-gray-200 bg-[#F3F4F6] p-8 max-[481px]:px-4 max-[481px]:py-6 lg:w-[70%]">
+              <div className="mb-6 grid grid-cols-[minmax(7.5rem,44%)_1fr] max-[481px]:grid-cols-[minmax(0,30%)_minmax(0,1fr)] max-[481px]:gap-x-2 border-b border-gray-300 pb-4 md:grid-cols-[30%_70%]">
+                <h3 className="pr-3 max-[481px]:pr-3 font-bold text-[#0E1724] max-[421px]:text-sm md:pr-4">Category</h3>
+                <h3 className="border-l border-gray-300 pl-3 max-[481px]:pl-3 font-bold text-[#0E1724] max-[421px]:text-sm md:pl-6">
                   Details
                 </h3>
               </div>
@@ -362,9 +368,9 @@ const SubscriptionPlans = () => {
 };
 
 const FeatureRow = ({ label, detail }: { label: string; detail: React.ReactNode }) => (
-  <div className="grid grid-cols-[minmax(7.5rem,44%)_1fr] items-start md:grid-cols-[30%_70%]">
-    <div className="pr-3 font-medium text-[#0E1724] max-[421px]:text-xs md:pr-4">{label}</div>
-    <div className="border-l border-gray-300 pl-3 leading-relaxed text-[#4B5563] max-[421px]:text-xs md:pl-6">
+  <div className="grid grid-cols-[minmax(7.5rem,44%)_1fr] max-[481px]:grid-cols-[minmax(0,30%)_minmax(0,1fr)] max-[481px]:gap-x-2 items-start md:grid-cols-[30%_70%]">
+    <div className="pr-3 max-[481px]:pr-3 font-medium text-[#0E1724] max-[421px]:text-xs md:pr-4">{label}</div>
+    <div className="border-l border-gray-300 pl-3 max-[481px]:pl-3 leading-relaxed text-[#4B5563] max-[421px]:text-xs md:pl-6">
       {detail}
     </div>
   </div>
