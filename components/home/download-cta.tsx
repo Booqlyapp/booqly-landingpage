@@ -5,8 +5,8 @@ import Image from "next/image";
 
 const DownloadCTA = () => {
   return (
-    <section className="w-full bg-white pt-6 pb-6 sm:pt-10 sm:pb-10 lg:pt-10 lg:pb-0 font-inter relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 grid grid-cols-1 lg:grid-cols-2 items-center lg:items-end gap-12 relative">
+    <section className="w-full bg-white pt-6 pb-6 sm:pt-10 sm:pb-10 lg:pt-10 lg:pb-0 font-inter relative overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-6 md:px-12 lg:px-20 grid grid-cols-1 lg:grid-cols-2 items-center lg:items-end gap-4 sm:gap-8 lg:gap-12 relative">
         {/* Left Content */}
         <div className="text-center lg:text-left relative order-1 lg:order-none z-10 lg:pb-16">
           <h2 className="text-3xl max-[421px]:text-[24px] sm:text-4xl lg:text-5xl font-semibold text-[#0E1724] mb-6">
@@ -53,14 +53,13 @@ const DownloadCTA = () => {
         </div>
 
         {/* Right Mockups */}
-        <div className="relative flex flex-col-reverse lg:flex-row justify-center lg:items-end items-center gap-3 order-2 lg:order-none mt-10 lg:mt-0">
-          {/* App Mockup */}
+        <div className="relative flex justify-center lg:justify-start lg:items-end items-center order-2 lg:order-none mt-4 lg:mt-0 w-full">
           <Image
             src="/images/downloadbooqly3.png"
             alt="Download Booqly App"
-            width={500}
-            height={800}
-            className="w-[90%] sm:w-[85%] lg:w-full z-10 lg:-ml-15 lg:mb-0 block"
+            width={1060}
+            height={1057}
+            className="w-[90%] sm:w-[85%] lg:w-full h-auto z-10 lg:-ml-15 lg:mb-0 block"
           />
 
           {/* Big Background Shape (Behind Mockups) */}
