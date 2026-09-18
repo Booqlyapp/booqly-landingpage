@@ -52,7 +52,7 @@ const CLIENT_PLANS: Plan[] = [
       { text: "Verified Provider Reviews" },
       {
         text: "Internal Chat",
-        note: "(Limited, Chat with only 3 different providers)",
+        note: "(Limited - Chat with only 3 different providers)",
       },
       {
         text: "Discover Any Provider",
@@ -333,18 +333,7 @@ const SubscriptionPlans = () => {
                   }
                 />
 
-                <FeatureRow
-                  label="Booking Policy Options/ Manage walk-in clients"
-                  detail={
-                    <>
-                      Suite-wide policies can be: <br />
-                      • <b>Unified:</b> All team members follow the same rules <br />
-                      • <b>Individual:</b> Each member sets their own page, pricing, and policies <br />
-                      {"(under suite unbrella)"}
-                    </>
-                  }
-                />
-              </div>
+                </div>
             </div>
           </div>
         </SwiperSlide>
