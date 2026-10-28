@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Service, Marketplace, ServiceAddOn } from '@/lib/types';
 import { getAvailableTimeSlots } from '@/lib/api';
+import { formatLocalDateYmd } from '@/lib/wall-clock';
 
 interface DateTimeSelectionProps {
   marketplace: Marketplace;
@@ -48,7 +49,7 @@ export default function DateTimeSelection({
     const fetchSlots = async () => {
       try {
         setLoading(true);
-        const dateStr = selectedDate.toISOString().split('T')[0];
+        const dateStr = formatLocalDateYmd(selectedDate);
         // Use first service for time slots (all services will be booked at same time)
         const slots = await getAvailableTimeSlots(marketplace.id, selectedServices[0].id, dateStr);
         setAvailableSlots(slots);
@@ -101,7 +102,7 @@ export default function DateTimeSelection({
 
   const handleConfirm = () => {
     if (selectedDate && selectedTime) {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = formatLocalDateYmd(selectedDate);
       onSelectDateTime(dateStr, selectedTime);
     }
   };

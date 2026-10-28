@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Marketplace, BookingData, Service, ServiceAddOn } from '@/lib/types';
 import { createExternalAppointment, createExternalAppointmentWithDeposit } from '@/lib/api';
+import { formatWallClockDateTime, parseLocalYmd } from '@/lib/wall-clock';
 import { CardNumberElement, CardExpiryElement, CardCvcElement, useStripe, useElements } from '@stripe/react-stripe-js';
 
 interface CustomerDetailsProps {
@@ -91,7 +92,9 @@ export default function CustomerDetails({
       if (period === 'PM' && hour !== 12) hour += 12;
       if (period === 'AM' && hour === 12) hour = 0;
 
-      const dateTime = new Date(bookingData.date);
+      // Build wall-clock local time (same as Flutter) — never toISOString()
+      // which converts to UTC and shifts the booked hour on the calendar.
+      const dateTime = parseLocalYmd(bookingData.date);
       dateTime.setHours(hour, parseInt(minutes), 0, 0);
 
       // Format services array with add-ons
@@ -107,7 +110,7 @@ export default function CustomerDetails({
         lastName: bookingData.lastName,
         email: bookingData.email,
         phone: bookingData.phone,
-        dateTime: dateTime.toISOString(),
+        dateTime: formatWallClockDateTime(dateTime),
         price: totalPrice,
         depositAmount: requiresDeposit ? depositAmount : undefined,
         remainingBalance: requiresDeposit ? totalPrice - depositAmount : undefined,
