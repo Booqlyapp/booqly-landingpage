@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import {
   Marketplace,
   BookingData,
@@ -15,6 +14,7 @@ import {
 } from '@/lib/api';
 import { formatWallClockDateTime, parseLocalYmd } from '@/lib/wall-clock';
 import { richTextToPlain } from '@/lib/rich-text';
+import AppointmentSummaryFooter from './appointment-summary-footer';
 import {
   CardNumberElement,
   CardExpiryElement,
@@ -29,41 +29,6 @@ interface CustomerDetailsProps {
   bookingData: BookingData;
   setBookingData: (data: BookingData) => void;
   onBack: () => void;
-}
-
-function formatDurationShort(duration: string | number | undefined): string {
-  if (duration == null || duration === '') return '';
-  const raw = String(duration).trim();
-  if (/hr|hour/i.test(raw)) {
-    return raw.replace(/hours?/i, (m) =>
-      m.toLowerCase().startsWith('hour') ? 'hrs' : 'hr'
-    );
-  }
-  if (/min/i.test(raw)) return raw;
-  const n = Number(raw);
-  if (!Number.isNaN(n)) {
-    if (n >= 60 && n % 60 === 0) {
-      const hours = n / 60;
-      return hours === 1 ? '1 hr' : `${hours} hrs`;
-    }
-    return `${n} min`;
-  }
-  return raw;
-}
-
-function formatDurationLong(duration: string | number | undefined): string {
-  if (duration == null || duration === '') return '';
-  const raw = String(duration).trim();
-  if (/min|hr|hour/i.test(raw)) return raw;
-  const n = Number(raw);
-  if (!Number.isNaN(n)) {
-    if (n >= 60 && n % 60 === 0) {
-      const hours = n / 60;
-      return hours === 1 ? '1 hour' : `${hours} hours`;
-    }
-    return `${n} min`;
-  }
-  return raw;
 }
 
 function computeServiceDeposit(service: Service, serviceTotal: number): number {
@@ -308,13 +273,8 @@ export default function CustomerDetails({
     }
   };
 
-  const selectedAddOns = service?.selectedAddOns || [];
-  const servicePrice = Number(service?.price || 0);
-  const durationLabel = formatDurationLong(service?.duration);
-  const durationShort = formatDurationShort(service?.duration);
-
   return (
-    <div className="min-h-screen bg-white pb-80">
+    <div className="min-h-screen bg-white pb-10">
       <form
         onSubmit={handleSubmit}
         className="max-w-3xl mx-auto px-4 sm:px-6 pt-8 pb-6"
@@ -471,114 +431,32 @@ export default function CustomerDetails({
             <p className="text-sm text-red-600">{error}</p>
           </div>
         )}
-      </form>
 
-      {/* YOUR APPOINTMENT + pay */}
-      {service && (
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
-            <p className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase mb-3">
-              Your appointment
-            </p>
-
-            <div className="rounded-xl border border-gray-200 p-3.5 mb-3">
-              <div className="flex items-center gap-3">
-                <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100 shrink-0">
-                  <Image
-                    src={service.imageUrl || '/images/beautybrushes.png'}
-                    alt={service.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-booking-serif text-lg font-bold text-black truncate">
-                    {service.name}
-                  </p>
-                  <p className="text-sm text-neutral-500">
-                    {durationLabel}
-                    {durationLabel ? ' · ' : ''}
-                    ${servicePrice.toFixed(2)}
-                  </p>
-                </div>
-              </div>
-
-              {selectedAddOns.length > 0 && (
-                <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                  {selectedAddOns.map((addon) => (
-                    <div
-                      key={addon.id}
-                      className="flex items-center justify-between gap-3 text-sm"
-                    >
-                      <span className="text-neutral-700 truncate">
-                        + {addon.title}
-                      </span>
-                      <span className="font-medium text-black shrink-0">
-                        {Number(addon.price) > 0
-                          ? `$${Number(addon.price).toFixed(2)}`
-                          : 'Included'}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {stylistLabel && (
-                <p className="mt-3 pt-3 border-t border-gray-100 text-sm text-neutral-600">
-                  {stylistLabel}
-                </p>
-              )}
-
-              {scheduledLabel && (
-                <p className="mt-2 text-sm text-neutral-600">{scheduledLabel}</p>
-              )}
-
-              <div className="mt-3 pt-3 border-t border-gray-100 flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-bold text-black">Total</p>
-                  <p className="text-sm text-neutral-500">
-                    {durationShort || '—'}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-black">
-                    ${totalPrice.toFixed(2)}
-                  </p>
-                  {requiresDeposit && (
-                    <p className="text-sm text-neutral-500">
-                      ${depositAmount.toFixed(2)} deposit due today
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => handleSubmit()}
-              disabled={!canSubmit}
-              className={`w-full py-3.5 rounded-xl font-bold text-sm tracking-wide uppercase transition-colors ${
-                canSubmit
-                  ? 'bg-black text-white hover:bg-gray-900'
-                  : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
-              }`}
-            >
-              {loading
-                ? 'Processing…'
-                : requiresDeposit
-                  ? `Pay $${depositAmount.toFixed(2)} Deposit`
-                  : 'Confirm booking'}
-            </button>
-
-            {requiresDeposit && (
-              <p className="mt-2 text-center text-xs text-neutral-500">
-                The deposit is non-refundable and will be applied toward your
-                service.
-              </p>
-            )}
+        {service && (
+          <div className="mt-8">
+            <AppointmentSummaryFooter
+              service={service}
+              selectedAddOns={service.selectedAddOns || []}
+              stylistLabel={stylistLabel}
+              scheduledLabel={scheduledLabel}
+              continueLabel={
+                loading
+                  ? 'Processing…'
+                  : requiresDeposit
+                    ? `Pay $${depositAmount.toFixed(2)} Deposit`
+                    : 'Confirm booking'
+              }
+              continueDisabled={!canSubmit}
+              onContinue={() => handleSubmit()}
+              footerNote={
+                requiresDeposit
+                  ? 'The deposit is non-refundable and will be applied toward your service.'
+                  : null
+              }
+            />
           </div>
-        </div>
-      )}
+        )}
+      </form>
 
       {showPolicies && (
         <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-4">

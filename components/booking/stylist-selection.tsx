@@ -3,6 +3,7 @@
 import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import { ProviderTeamMember, Service } from '@/lib/types';
+import AppointmentSummaryFooter from './appointment-summary-footer';
 
 interface StylistSelectionProps {
   service: Service;
@@ -10,51 +11,6 @@ interface StylistSelectionProps {
 }
 
 const NO_PREFERENCE = '__no_preference__';
-
-function formatDurationShort(duration: string | number | undefined): string {
-  if (duration == null || duration === '') return '';
-  const raw = String(duration).trim();
-  if (/hr|hour/i.test(raw)) {
-    return raw.replace(/hours?/i, (m) =>
-      m.toLowerCase().startsWith('hour') ? 'hrs' : 'hr'
-    );
-  }
-  if (/min/i.test(raw)) return raw;
-  const n = Number(raw);
-  if (!Number.isNaN(n)) {
-    if (n >= 60 && n % 60 === 0) {
-      const hours = n / 60;
-      return hours === 1 ? '1 hr' : `${hours} hrs`;
-    }
-    return `${n} min`;
-  }
-  return raw;
-}
-
-function formatDurationLong(duration: string | number | undefined): string {
-  if (duration == null || duration === '') return '';
-  const raw = String(duration).trim();
-  if (/min|hr|hour/i.test(raw)) return raw;
-  const n = Number(raw);
-  if (!Number.isNaN(n)) {
-    if (n >= 60 && n % 60 === 0) {
-      const hours = n / 60;
-      return hours === 1 ? '1 hour' : `${hours} hours`;
-    }
-    return `${n} min`;
-  }
-  return raw;
-}
-
-function computeDeposit(service: Service, total: number): number | null {
-  if (!service.requireDeposit || service.depositAmount == null) return null;
-  const amount = Number(service.depositAmount);
-  if (Number.isNaN(amount) || amount <= 0) return null;
-  if (service.depositType === 'percentage') {
-    return (total * amount) / 100;
-  }
-  return amount;
-}
 
 function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -66,7 +22,9 @@ function getInitials(name: string): string {
 function memberSubtitle(member: ProviderTeamMember): string {
   const parts: string[] = [];
   if (member.isOwner) parts.push('Owner');
-  parts.push(member.jobTitle?.trim() || (member.isOwner ? 'Lead stylist' : 'Stylist'));
+  parts.push(
+    member.jobTitle?.trim() || (member.isOwner ? 'Lead stylist' : 'Stylist')
+  );
   return parts.join(' · ');
 }
 
@@ -80,23 +38,11 @@ export default function StylistSelection({
   );
 
   const [selectedId, setSelectedId] = useState<string>(
-    service.selectedProviderId === undefined
+    service.selectedProviderId === undefined ||
+      service.selectedProviderId === null
       ? NO_PREFERENCE
-      : service.selectedProviderId === null
-        ? NO_PREFERENCE
-        : service.selectedProviderId
+      : service.selectedProviderId
   );
-
-  const selectedAddOns = service.selectedAddOns || [];
-  const servicePrice = Number(service.price);
-  const addOnsTotal = selectedAddOns.reduce(
-    (sum, addon) => sum + Number(addon.price),
-    0
-  );
-  const totalPrice = servicePrice + addOnsTotal;
-  const deposit = computeDeposit(service, totalPrice);
-  const durationLabel = formatDurationLong(service.duration);
-  const durationShort = formatDurationShort(service.duration);
 
   const selectedMember =
     selectedId === NO_PREFERENCE
@@ -108,16 +54,17 @@ export default function StylistSelection({
     : 'With First available stylist';
 
   return (
-    <div className="min-h-screen bg-white pb-80">
+    <div className="min-h-screen bg-white pb-10">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-8 pb-6">
         <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-2">
           Choose your stylist
         </h2>
         <p className="text-neutral-500 text-[15px] mb-8">
-          Pick who you&apos;d like, or choose no preference to see the most times.
+          Pick who you&apos;d like, or choose no preference to see the most
+          times.
         </p>
 
-        <div className="divide-y divide-gray-200 border-t border-gray-200">
+        <div className="divide-y divide-gray-200 border-t border-b border-gray-200">
           <button
             type="button"
             onClick={() => setSelectedId(NO_PREFERENCE)}
@@ -125,9 +72,7 @@ export default function StylistSelection({
           >
             <span
               className={`shrink-0 w-5 h-5 rounded-full border flex items-center justify-center ${
-                selectedId === NO_PREFERENCE
-                  ? 'border-black'
-                  : 'border-gray-400'
+                selectedId === NO_PREFERENCE ? 'border-black' : 'border-gray-400'
               }`}
               aria-hidden
             >
@@ -137,7 +82,12 @@ export default function StylistSelection({
             </span>
 
             <span className="shrink-0 w-11 h-11 rounded-full bg-neutral-100 text-neutral-600 flex items-center justify-center">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
                 <path
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -172,7 +122,9 @@ export default function StylistSelection({
                   }`}
                   aria-hidden
                 >
-                  {checked && <span className="w-2.5 h-2.5 rounded-full bg-black" />}
+                  {checked && (
+                    <span className="w-2.5 h-2.5 rounded-full bg-black" />
+                  )}
                 </span>
 
                 <span className="relative shrink-0 w-11 h-11 rounded-full overflow-hidden bg-neutral-100 text-neutral-700 flex items-center justify-center text-xs font-bold">
@@ -200,83 +152,16 @@ export default function StylistSelection({
             );
           })}
         </div>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
-          <p className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase mb-3">
-            Your appointment
-          </p>
-
-          <div className="rounded-xl border border-gray-200 p-3.5 mb-3">
-            <div className="flex items-center gap-3">
-              <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100 shrink-0">
-                <Image
-                  src={service.imageUrl || '/images/beautybrushes.png'}
-                  alt={service.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="min-w-0">
-                <p className="font-booking-serif text-lg font-bold text-black truncate">
-                  {service.name}
-                </p>
-                <p className="text-sm text-neutral-500">
-                  {durationLabel}
-                  {durationLabel ? ' · ' : ''}
-                  ${servicePrice.toFixed(2)}
-                </p>
-              </div>
-            </div>
-
-            {selectedAddOns.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
-                {selectedAddOns.map((addon) => (
-                  <div
-                    key={addon.id}
-                    className="flex items-center justify-between gap-3 text-sm"
-                  >
-                    <span className="text-neutral-700 truncate">+ {addon.title}</span>
-                    <span className="font-medium text-black shrink-0">
-                      {Number(addon.price) > 0
-                        ? `$${Number(addon.price).toFixed(2)}`
-                        : 'Included'}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <p className="mt-3 pt-3 border-t border-gray-100 text-sm text-neutral-600">
-              {stylistSummaryLabel}
-            </p>
-
-            <div className="mt-3 pt-3 border-t border-gray-100 flex items-start justify-between gap-3">
-              <div>
-                <p className="font-bold text-black">Total</p>
-                <p className="text-sm text-neutral-500">{durationShort || '—'}</p>
-              </div>
-              <div className="text-right">
-                <p className="font-bold text-black">${totalPrice.toFixed(2)}</p>
-                {deposit != null && (
-                  <p className="text-sm text-neutral-500">
-                    ${deposit.toFixed(2)} deposit due today
-                  </p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() =>
+        <div className="mt-8">
+          <AppointmentSummaryFooter
+            service={service}
+            selectedAddOns={service.selectedAddOns || []}
+            stylistLabel={stylistSummaryLabel}
+            onContinue={() =>
               onContinue(selectedId === NO_PREFERENCE ? null : selectedId)
             }
-            className="w-full bg-black text-white py-3.5 rounded-xl font-bold text-sm tracking-wide uppercase hover:bg-gray-900 transition-colors"
-          >
-            Continue
-          </button>
+          />
         </div>
       </div>
     </div>

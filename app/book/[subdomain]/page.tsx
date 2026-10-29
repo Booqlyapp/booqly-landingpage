@@ -14,7 +14,9 @@ import CustomerDetails from '@/components/booking/customer-details';
 import StripeWrapper from '@/components/booking/stripe-wrapper';
 
 function serviceHasActiveAddOns(service: Service | undefined): boolean {
-  return Boolean(service?.addOns?.some((addon) => addon.isActive));
+  return Boolean(
+    service?.addOns?.some((addon) => addon && addon.isActive !== false)
+  );
 }
 
 function serviceHasTeamMembers(service: Service | undefined): boolean {

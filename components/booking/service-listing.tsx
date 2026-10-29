@@ -7,6 +7,7 @@ import { Marketplace, Service } from '@/lib/types';
 import { richTextToPlain } from '@/lib/rich-text';
 import ReviewsSection from './reviews-section';
 import PoweredBy from './powered-by';
+import AppointmentSummaryFooter from './appointment-summary-footer';
 
 const Document = dynamic(
   () => import('react-pdf').then((mod) => mod.Document),
@@ -40,26 +41,6 @@ function formatDuration(duration: string | number | undefined): string {
     if (n >= 60 && n % 60 === 0) {
       const hours = n / 60;
       return hours === 1 ? '1 hour' : `${hours} hours`;
-    }
-    return `${n} min`;
-  }
-  return raw;
-}
-
-function formatDurationShort(duration: string | number | undefined): string {
-  if (duration == null || duration === '') return '';
-  const raw = String(duration).trim();
-  if (/hr|hour/i.test(raw)) {
-    return raw.replace(/hours?/i, (m) =>
-      m.toLowerCase().startsWith('hour') ? 'hrs' : 'hr'
-    );
-  }
-  if (/min/i.test(raw)) return raw;
-  const n = Number(raw);
-  if (!Number.isNaN(n)) {
-    if (n >= 60 && n % 60 === 0) {
-      const hours = n / 60;
-      return hours === 1 ? '1 hr' : `${hours} hrs`;
     }
     return `${n} min`;
   }
@@ -110,13 +91,6 @@ export default function ServiceListing({
     selectedServices.some((s) => s.id === serviceId);
 
   const selected = selectedServices[0];
-  const totalAmount = selected
-    ? Number(selected.price) +
-      (selected.selectedAddOns || []).reduce(
-        (a, addon) => a + Number(addon.price),
-        0
-      )
-    : 0;
 
   const formatSchedule = (day: string) => {
     const schedule =
@@ -159,7 +133,7 @@ export default function ServiceListing({
   );
 
   return (
-    <div className={`min-h-screen bg-white ${selected ? 'pb-28' : 'pb-10'}`}>
+    <div className="min-h-screen bg-white pb-10">
       {/* Hero: full uploaded header image or PDF — no crop / edge cut */}
       {hasHeaderMedia ? (
         <div ref={headerMediaRef} className="w-full bg-white overflow-x-hidden">
@@ -414,48 +388,20 @@ export default function ServiceListing({
           ) : null}
         </section>
 
+        {selected && (
+          <div className="pt-2 pb-4">
+            <AppointmentSummaryFooter
+              service={selected}
+              selectedAddOns={selected.selectedAddOns || []}
+              onContinue={() => onProceedToBooking(selectedServices)}
+            />
+          </div>
+        )}
+
         <div className="pt-4 pb-8">
           <PoweredBy />
         </div>
       </div>
-
-      {selected && (
-        <div className="fixed bottom-0 left-0 right-0 bg-black text-white p-4 shadow-lg z-50 safe-area-pb">
-          <div className="flex items-center justify-between gap-3 max-w-3xl mx-auto">
-            <div className="min-w-0">
-              <p className="text-xl font-bold leading-tight">
-                ${totalAmount.toFixed(2)}
-              </p>
-              <p className="text-sm text-white/75 truncate mt-0.5">
-                {selected.name}
-                {formatDurationShort(selected.duration)
-                  ? ` · ${formatDurationShort(selected.duration)}`
-                  : ''}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={() => onProceedToBooking(selectedServices)}
-              className="shrink-0 inline-flex items-center gap-2 border border-white text-white px-5 py-3 rounded-lg font-bold text-sm tracking-wide uppercase hover:bg-white/10 transition-colors"
-            >
-              Continue
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 5l7 7-7 7"
-                />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
