@@ -287,15 +287,21 @@ export default function PageColorsEditor({
       </div>
 
       {pickerField && (
-        <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/40 px-5">
-          <div className="w-full max-w-[300px] rounded-2xl bg-white px-5 pb-2 pt-5 shadow-[0_11px_15px_-7px_rgba(0,0,0,0.2),0_24px_38px_3px_rgba(0,0,0,0.14),0_9px_46px_8px_rgba(0,0,0,0.12)]">
+        <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/40 px-4">
+          <div
+            className={`rounded-2xl bg-white pb-2 pt-5 shadow-[0_11px_15px_-7px_rgba(0,0,0,0.2),0_24px_38px_3px_rgba(0,0,0,0.14),0_9px_46px_8px_rgba(0,0,0,0.12)] ${
+              pickerMode === 'custom'
+                ? 'w-[min(86vw,340px)] px-6'
+                : 'w-[min(94vw,440px)] px-5 sm:px-6'
+            }`}
+          >
             <h3 className="mb-5 font-sans text-[20px] font-normal leading-7 tracking-[0.15px] text-[rgba(0,0,0,0.87)]">
               Select colour
             </h3>
 
             {pickerMode === 'grid' ? (
               <>
-                <div className="mb-5 grid grid-cols-4 gap-3">
+                <div className="mb-6 grid grid-cols-4 gap-x-4 gap-y-5 sm:gap-x-5 sm:gap-y-6">
                   {PRESET_PICKER_COLORS.map((hex) => {
                     const selected = draftHex.toUpperCase() === hex;
                     return (
@@ -308,10 +314,10 @@ export default function PageColorsEditor({
                         }}
                         aria-label={hex}
                         aria-pressed={selected}
-                        className={`aspect-square border bg-white p-[4px] ${
+                        className={`aspect-square w-full border bg-white p-[5px] ${
                           selected
                             ? 'border-[rgba(0,0,0,0.87)]'
-                            : 'border-[rgba(0,0,0,0.54)]'
+                            : 'border-[rgba(0,0,0,0.38)]'
                         }`}
                       >
                         <span
@@ -339,7 +345,7 @@ export default function PageColorsEditor({
               </>
             ) : (
               <>
-                <div className="mb-4 space-y-4">
+                <div className="mb-5 space-y-5">
                   <MaterialHsvSlider
                     label="Hue"
                     min={0}
@@ -423,11 +429,13 @@ export default function PageColorsEditor({
 
 function ChosenColourPreview({ hex }: { hex: string }) {
   return (
-    <div className="flex items-center gap-2.5 font-sans text-[14px] text-[rgba(0,0,0,0.87)]">
+    <div className="flex items-center gap-3 font-sans text-[14px] text-[rgba(0,0,0,0.87)]">
       Chosen colour
       <span
-        className={`inline-block h-8 w-8 shrink-0 border border-[rgba(0,0,0,0.54)] ${
-          hex.toUpperCase() === '#FFFFFF' ? 'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]' : ''
+        className={`inline-block h-10 w-10 shrink-0 border border-[rgba(0,0,0,0.54)] ${
+          hex.toUpperCase() === '#FFFFFF'
+            ? 'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]'
+            : ''
         }`}
         style={{ backgroundColor: hex }}
         aria-hidden
@@ -458,33 +466,30 @@ function MaterialHsvSlider({
   const pct = max === min ? 0 : ((value - min) / (max - min)) * 100;
 
   return (
-    <div className="select-none">
-      <p className="mb-1.5 font-sans text-[12px] font-normal leading-4 text-[rgba(0,0,0,0.6)]">
+    <div className="w-full select-none">
+      <p className="mb-2.5 font-sans text-[13px] font-normal leading-4 text-[rgba(0,0,0,0.6)]">
         {label}
       </p>
-      <div className="relative h-[42px]">
-        {/* Track */}
+      <div className="relative h-[58px] w-full">
+        {/* Track height matched to original Customised screenshot (~36px) */}
         <div
-          className="absolute left-0 right-0 top-0 h-[20px] w-full"
+          className="absolute left-0 right-0 top-0 h-9 w-full"
           style={trackStyle}
         />
         {/* House marker under the track (points up at value) */}
         <div
-          className="pointer-events-none absolute top-[20px] z-[1] -translate-x-1/2"
+          className="pointer-events-none absolute top-9 z-[1] -translate-x-1/2"
           style={{ left: `${pct}%` }}
           aria-hidden
         >
           <svg
-            width="16"
-            height="20"
+            width="20"
+            height="24"
             viewBox="0 0 16 20"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path
-              d="M8 0L16 7.5V20H0V7.5L8 0Z"
-              fill="#2196F3"
-            />
+            <path d="M8 0L16 7.5V20H0V7.5L8 0Z" fill="#2196F3" />
           </svg>
         </div>
         {/* Invisible hit target */}
