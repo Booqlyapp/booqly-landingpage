@@ -1,9 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type CSSProperties,
+} from 'react';
 import {
   BookingPageColors,
   BUTTON_SWATCHES,
+  DEFAULT_BOOKING_PAGE_COLORS,
   PAGE_BACKGROUND_SWATCHES,
   PRESET_PICKER_COLORS,
   TEXT_SWATCHES,
@@ -88,11 +94,48 @@ export default function PageColorsEditor({
     setPickerField(field);
   };
 
-  const persist = async (next: BookingPageColors) => {
+  const handleSwatch = (field: ColorField, hex: string | null) => {
+    applyColors({ ...colors, [field]: hex });
+  };
+
+  const handleUseSuggested = () => {
+    if (suggested.length === 0) return;
+    applyColors(
+      normalizeBookingPageColors({
+        pageBackground: suggested[0] || colors.pageBackground,
+        text: suggested[1] || colors.text,
+        buttons: suggested[2] || colors.buttons,
+        buttonText: null,
+      })
+    );
+  };
+
+  const handleSetFromPicker = () => {
+    if (!pickerField || !isValidHexColor(draftHex)) return;
+    const hex = draftHex.toUpperCase();
+    applyColors({ ...colors, [pickerField]: hex });
+    setPickerField(null);
+  };
+
+  const handleReset = () => {
+    applyColors(DEFAULT_BOOKING_PAGE_COLORS);
+    setSaveError(null);
+  };
+
+  const handleDismiss = () => {
+    // Drop unsaved preview and restore last saved colors.
+    onColorsChange(normalizeBookingPageColors(initialColors));
+    onClose();
+  };
+
+  const handleSave = async () => {
     setSaving(true);
     setSaveError(null);
     try {
+      const next = normalizeBookingPageColors(colors);
       await saveBookingPageColors(marketplaceId, next, accessToken);
+      onColorsChange(next);
+      onClose();
     } catch (err) {
       setSaveError(
         err instanceof Error ? err.message : 'Failed to save colors'
@@ -100,33 +143,6 @@ export default function PageColorsEditor({
     } finally {
       setSaving(false);
     }
-  };
-
-  const handleSwatch = async (field: ColorField, hex: string | null) => {
-    const next = { ...colors, [field]: hex };
-    applyColors(next);
-    await persist(normalizeBookingPageColors(next));
-  };
-
-  const handleUseSuggested = async () => {
-    if (suggested.length === 0) return;
-    const next = normalizeBookingPageColors({
-      pageBackground: suggested[0] || colors.pageBackground,
-      text: suggested[1] || colors.text,
-      buttons: suggested[2] || colors.buttons,
-      buttonText: null,
-    });
-    applyColors(next);
-    await persist(next);
-  };
-
-  const handleSetFromPicker = async () => {
-    if (!pickerField || !isValidHexColor(draftHex)) return;
-    const hex = draftHex.toUpperCase();
-    const next = { ...colors, [pickerField]: hex };
-    applyColors(next);
-    setPickerField(null);
-    await persist(normalizeBookingPageColors(next));
   };
 
   const buttonTextLabel = useMemo(() => {
@@ -142,7 +158,7 @@ export default function PageColorsEditor({
     <>
       <div
         className="fixed inset-0 z-[10000] bg-black/40"
-        onClick={onClose}
+        onClick={handleDismiss}
         aria-hidden
       />
       <div
@@ -160,7 +176,7 @@ export default function PageColorsEditor({
             </div>
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleDismiss}
               className="rounded-full p-2 text-neutral-600 hover:bg-neutral-100"
               aria-label="Close"
             >
@@ -177,7 +193,7 @@ export default function PageColorsEditor({
               </p>
               <button
                 type="button"
-                onClick={() => void handleUseSuggested()}
+                onClick={handleUseSuggested}
                 className="shrink-0 rounded-lg bg-white px-3 py-1.5 text-sm font-semibold text-black shadow-sm border border-neutral-200"
               >
                 Use suggested
@@ -194,7 +210,7 @@ export default function PageColorsEditor({
                 : PAGE_BACKGROUND_SWATCHES
             }
             selected={colors.pageBackground}
-            onSelect={(hex) => void handleSwatch('pageBackground', hex)}
+            onSelect={(hex) => handleSwatch('pageBackground', hex)}
             onPlus={() => openPicker('pageBackground')}
           />
 
@@ -203,7 +219,7 @@ export default function PageColorsEditor({
             value={colors.text}
             swatches={TEXT_SWATCHES}
             selected={colors.text}
-            onSelect={(hex) => void handleSwatch('text', hex)}
+            onSelect={(hex) => handleSwatch('text', hex)}
             onPlus={() => openPicker('text')}
           />
 
@@ -212,7 +228,7 @@ export default function PageColorsEditor({
             value={colors.buttons}
             swatches={BUTTON_SWATCHES}
             selected={colors.buttons}
-            onSelect={(hex) => void handleSwatch('buttons', hex)}
+            onSelect={(hex) => handleSwatch('buttons', hex)}
             onPlus={() => openPicker('buttons')}
           />
 
@@ -224,7 +240,7 @@ export default function PageColorsEditor({
             <div className="flex flex-wrap items-center gap-2.5">
               <button
                 type="button"
-                onClick={() => void handleSwatch('buttonText', null)}
+                onClick={() => handleSwatch('buttonText', null)}
                 className={`h-10 min-w-10 rounded-full px-3 text-xs font-bold border ${
                   colors.buttonText === null
                     ? 'ring-2 ring-black border-transparent bg-[#0B1B3A] text-white'
@@ -238,7 +254,7 @@ export default function PageColorsEditor({
                   key={hex}
                   hex={hex}
                   selected={colors.buttonText === hex}
-                  onClick={() => void handleSwatch('buttonText', hex)}
+                  onClick={() => handleSwatch('buttonText', hex)}
                 />
               ))}
               <PlusSwatch onClick={() => openPicker('buttonText')} />
@@ -249,144 +265,151 @@ export default function PageColorsEditor({
             <p className="mb-3 text-sm text-red-600">{saveError}</p>
           )}
 
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={saving}
-            className="mb-2 w-full rounded-xl bg-black py-3.5 text-sm font-bold uppercase tracking-wide text-white disabled:opacity-60"
-          >
-            {saving ? 'Saving…' : 'Done'}
-          </button>
+          <div className="mb-2 flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={saving}
+              className="flex-1 rounded-full border border-neutral-300 bg-white py-3.5 text-sm font-bold text-black disabled:opacity-60"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleSave()}
+              disabled={saving}
+              className="flex-[1.35] rounded-full bg-[#0B1B3A] py-3.5 text-sm font-bold text-white disabled:opacity-60"
+            >
+              {saving ? 'Saving…' : 'Save colors'}
+            </button>
+          </div>
         </div>
       </div>
 
       {pickerField && (
-        <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-2xl bg-white p-4 shadow-xl">
-            <h3 className="mb-3 text-lg font-bold text-black">Select colour</h3>
+        <div className="fixed inset-0 z-[10002] flex items-center justify-center bg-black/40 px-5">
+          <div className="w-full max-w-[300px] rounded-2xl bg-white px-5 pb-2 pt-5 shadow-[0_11px_15px_-7px_rgba(0,0,0,0.2),0_24px_38px_3px_rgba(0,0,0,0.14),0_9px_46px_8px_rgba(0,0,0,0.12)]">
+            <h3 className="mb-5 font-sans text-[20px] font-normal leading-7 tracking-[0.15px] text-[rgba(0,0,0,0.87)]">
+              Select colour
+            </h3>
 
             {pickerMode === 'grid' ? (
               <>
-                <div className="mb-4 grid grid-cols-4 gap-2">
-                  {PRESET_PICKER_COLORS.map((hex) => (
-                    <button
-                      key={hex}
-                      type="button"
-                      onClick={() => {
-                        setDraftHex(hex);
-                        setHsv(hexToHsv(hex));
-                      }}
-                      className={`aspect-square rounded-lg border ${
-                        draftHex.toUpperCase() === hex
-                          ? 'ring-2 ring-black'
-                          : 'border-neutral-200'
-                      }`}
-                      style={{ backgroundColor: hex }}
-                      aria-label={hex}
-                    />
-                  ))}
+                <div className="mb-5 grid grid-cols-4 gap-3">
+                  {PRESET_PICKER_COLORS.map((hex) => {
+                    const selected = draftHex.toUpperCase() === hex;
+                    return (
+                      <button
+                        key={hex}
+                        type="button"
+                        onClick={() => {
+                          setDraftHex(hex);
+                          setHsv(hexToHsv(hex));
+                        }}
+                        aria-label={hex}
+                        aria-pressed={selected}
+                        className={`aspect-square border bg-white p-[4px] ${
+                          selected
+                            ? 'border-[rgba(0,0,0,0.87)]'
+                            : 'border-[rgba(0,0,0,0.54)]'
+                        }`}
+                      >
+                        <span
+                          className={`block h-full w-full ${
+                            hex === '#FFFFFF'
+                              ? 'border border-[rgba(0,0,0,0.12)]'
+                              : ''
+                          }`}
+                          style={{ backgroundColor: hex }}
+                        />
+                      </button>
+                    );
+                  })}
                 </div>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => setPickerMode('custom')}
-                    className="text-sm font-semibold text-blue-600"
+                    className="font-sans text-[14px] font-medium tracking-[0.1px] text-[#2196F3]"
                   >
                     Customised
                   </button>
-                  <div className="flex items-center gap-2 text-sm text-neutral-600">
-                    Chosen colour
-                    <span
-                      className="h-8 w-8 rounded-md border border-neutral-300"
-                      style={{ backgroundColor: draftHex }}
-                    />
-                  </div>
+                  <ChosenColourPreview hex={draftHex} />
                 </div>
               </>
             ) : (
               <>
-                <div className="mb-3 space-y-3">
-                  <label className="block text-xs font-medium text-neutral-600">
-                    Hue
-                    <input
-                      type="range"
-                      min={0}
-                      max={360}
-                      value={hsv.h}
-                      onChange={(e) => {
-                        const next = { ...hsv, h: Number(e.target.value) };
-                        setHsv(next);
-                        setDraftHex(hsvToHex(next.h, next.s, next.v));
-                      }}
-                      className="mt-1 w-full accent-blue-600"
-                      style={{
-                        background:
-                          'linear-gradient(to right, #f00, #ff0, #0f0, #0ff, #00f, #f0f, #f00)',
-                      }}
-                    />
-                  </label>
-                  <label className="block text-xs font-medium text-neutral-600">
-                    Saturation
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={Math.round(hsv.s * 100)}
-                      onChange={(e) => {
-                        const next = { ...hsv, s: Number(e.target.value) / 100 };
-                        setHsv(next);
-                        setDraftHex(hsvToHex(next.h, next.s, next.v));
-                      }}
-                      className="mt-1 w-full accent-blue-600"
-                    />
-                  </label>
-                  <label className="block text-xs font-medium text-neutral-600">
-                    Value
-                    <input
-                      type="range"
-                      min={0}
-                      max={100}
-                      value={Math.round(hsv.v * 100)}
-                      onChange={(e) => {
-                        const next = { ...hsv, v: Number(e.target.value) / 100 };
-                        setHsv(next);
-                        setDraftHex(hsvToHex(next.h, next.s, next.v));
-                      }}
-                      className="mt-1 w-full accent-blue-600"
-                    />
-                  </label>
+                <div className="mb-4 space-y-4">
+                  <MaterialHsvSlider
+                    label="Hue"
+                    min={0}
+                    max={360}
+                    value={Math.round(hsv.h)}
+                    trackStyle={{
+                      backgroundImage:
+                        'linear-gradient(to right, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%)',
+                    }}
+                    onChange={(h) => {
+                      const next = { ...hsv, h };
+                      setHsv(next);
+                      setDraftHex(hsvToHex(next.h, next.s, next.v));
+                    }}
+                  />
+                  <MaterialHsvSlider
+                    label="Saturation"
+                    min={0}
+                    max={100}
+                    value={Math.round(hsv.s * 100)}
+                    trackStyle={{
+                      backgroundImage: `linear-gradient(to right, #fff, ${hsvToHex(hsv.h, 1, 1)})`,
+                    }}
+                    onChange={(s) => {
+                      const next = { ...hsv, s: s / 100 };
+                      setHsv(next);
+                      setDraftHex(hsvToHex(next.h, next.s, next.v));
+                    }}
+                  />
+                  <MaterialHsvSlider
+                    label="Value"
+                    min={0}
+                    max={100}
+                    value={Math.round(hsv.v * 100)}
+                    trackStyle={{
+                      backgroundImage:
+                        'linear-gradient(to right, #000, #fff)',
+                    }}
+                    onChange={(v) => {
+                      const next = { ...hsv, v: v / 100 };
+                      setHsv(next);
+                      setDraftHex(hsvToHex(next.h, next.s, next.v));
+                    }}
+                  />
                 </div>
                 <div className="mb-4 flex items-center justify-between gap-3">
                   <button
                     type="button"
                     onClick={() => setPickerMode('grid')}
-                    className="text-sm font-semibold text-blue-600"
+                    className="font-sans text-[14px] font-medium tracking-[0.1px] text-[#2196F3]"
                   >
                     Suggestions
                   </button>
-                  <div className="flex items-center gap-2 text-sm text-neutral-600">
-                    Chosen colour
-                    <span
-                      className="h-8 w-8 rounded-md border border-neutral-300"
-                      style={{ backgroundColor: draftHex }}
-                    />
-                  </div>
+                  <ChosenColourPreview hex={draftHex} />
                 </div>
               </>
             )}
 
-            <div className="flex justify-end gap-4">
+            <div className="flex justify-end gap-2 pb-1">
               <button
                 type="button"
                 onClick={() => setPickerField(null)}
-                className="text-sm font-semibold text-blue-600"
+                className="min-w-[64px] px-2 py-2.5 font-sans text-[14px] font-medium tracking-[0.1px] text-[#2196F3]"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => void handleSetFromPicker()}
-                className="text-sm font-semibold text-blue-600"
+                onClick={handleSetFromPicker}
+                className="min-w-[64px] px-2 py-2.5 font-sans text-[14px] font-medium tracking-[0.1px] text-[#2196F3]"
               >
                 Set
               </button>
@@ -395,6 +418,88 @@ export default function PageColorsEditor({
         </div>
       )}
     </>
+  );
+}
+
+function ChosenColourPreview({ hex }: { hex: string }) {
+  return (
+    <div className="flex items-center gap-2.5 font-sans text-[14px] text-[rgba(0,0,0,0.87)]">
+      Chosen colour
+      <span
+        className={`inline-block h-8 w-8 shrink-0 border border-[rgba(0,0,0,0.54)] ${
+          hex.toUpperCase() === '#FFFFFF' ? 'shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]' : ''
+        }`}
+        style={{ backgroundColor: hex }}
+        aria-hidden
+      />
+    </div>
+  );
+}
+
+/**
+ * Flutter / Material HSV slider: solid gradient track + blue house marker under it.
+ * Matches the classic "Select colour → Customised" dialog.
+ */
+function MaterialHsvSlider({
+  label,
+  min,
+  max,
+  value,
+  trackStyle,
+  onChange,
+}: {
+  label: string;
+  min: number;
+  max: number;
+  value: number;
+  trackStyle: CSSProperties;
+  onChange: (value: number) => void;
+}) {
+  const pct = max === min ? 0 : ((value - min) / (max - min)) * 100;
+
+  return (
+    <div className="select-none">
+      <p className="mb-1.5 font-sans text-[12px] font-normal leading-4 text-[rgba(0,0,0,0.6)]">
+        {label}
+      </p>
+      <div className="relative h-[42px]">
+        {/* Track */}
+        <div
+          className="absolute left-0 right-0 top-0 h-[20px] w-full"
+          style={trackStyle}
+        />
+        {/* House marker under the track (points up at value) */}
+        <div
+          className="pointer-events-none absolute top-[20px] z-[1] -translate-x-1/2"
+          style={{ left: `${pct}%` }}
+          aria-hidden
+        >
+          <svg
+            width="16"
+            height="20"
+            viewBox="0 0 16 20"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M8 0L16 7.5V20H0V7.5L8 0Z"
+              fill="#2196F3"
+            />
+          </svg>
+        </div>
+        {/* Invisible hit target */}
+        <input
+          type="range"
+          min={min}
+          max={max}
+          step={1}
+          value={value}
+          aria-label={label}
+          onChange={(e) => onChange(Number(e.target.value))}
+          className="absolute inset-0 z-10 m-0 h-full w-full cursor-pointer appearance-none opacity-0"
+        />
+      </div>
+    </div>
   );
 }
 
@@ -413,14 +518,24 @@ function ColorRow({
   onSelect: (hex: string) => void;
   onPlus: () => void;
 }) {
-  const unique = [...new Set(swatches.map((s) => s.toUpperCase()))];
+  // Cap so swatches + "+" always fit one row on small phones.
+  const unique = [...new Set(swatches.map((s) => s.toUpperCase()))].slice(
+    0,
+    7
+  );
+  const columns = unique.length + 1;
   return (
     <div className="mb-5">
       <div className="mb-2 flex items-center justify-between">
         <p className="text-sm font-semibold text-black">{label}</p>
         <p className="text-xs text-neutral-500">{value}</p>
       </div>
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div
+        className="grid w-full items-center gap-1.5 sm:gap-2.5"
+        style={{
+          gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`,
+        }}
+      >
         {unique.map((hex) => (
           <Swatch
             key={hex}
@@ -449,8 +564,8 @@ function Swatch({
       type="button"
       onClick={onClick}
       aria-label={hex}
-      className={`h-10 w-10 rounded-full border ${
-        selected ? 'ring-2 ring-black ring-offset-2' : ''
+      className={`mx-auto aspect-square w-full max-w-10 rounded-full border ${
+        selected ? 'ring-2 ring-black ring-offset-1 sm:ring-offset-2' : ''
       } ${hex === '#FFFFFF' ? 'border-neutral-300' : 'border-transparent'}`}
       style={{ backgroundColor: hex }}
     />
@@ -463,7 +578,7 @@ function PlusSwatch({ onClick }: { onClick: () => void }) {
       type="button"
       onClick={onClick}
       aria-label="Custom colour"
-      className="flex h-10 w-10 items-center justify-center rounded-full border border-dashed border-neutral-400 text-lg font-light text-neutral-600"
+      className="mx-auto flex aspect-square w-full max-w-10 items-center justify-center rounded-full border border-dashed border-neutral-400 text-lg font-light text-neutral-600"
     >
       +
     </button>
