@@ -21,8 +21,8 @@ export default function SubdomainNavbar({
   return (
     <header className="bg-white sticky top-0 z-50 border-b border-gray-200">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
-        <div className="flex justify-between items-center h-14 gap-3">
-          <h1 className="font-booking-serif text-lg sm:text-xl font-bold text-black truncate min-w-0">
+        <div className="flex justify-between items-center min-h-[3.5rem] py-3 gap-3">
+          <h1 className="font-booking-serif text-[1.35rem] sm:text-[1.65rem] leading-tight font-bold tracking-tight text-black truncate min-w-0">
             {businessName}
           </h1>
 
@@ -55,14 +55,14 @@ export default function SubdomainNavbar({
 
         {navItems.length > 0 && (
           <nav
-            className="flex gap-5 sm:gap-6 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 border-t border-gray-100"
+            className="flex gap-6 sm:gap-8 overflow-x-auto scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0 border-t border-gray-200"
             aria-label="Page sections"
           >
             {navItems.map((item) => (
               <a
                 key={item.id}
                 href={`#${item.id}`}
-                className="shrink-0 py-3 text-sm text-gray-700 hover:text-black border-b-2 border-transparent hover:border-black transition-colors"
+                className="shrink-0 py-3.5 text-[15px] font-medium text-neutral-800 hover:text-black transition-colors"
               >
                 {item.label}
               </a>

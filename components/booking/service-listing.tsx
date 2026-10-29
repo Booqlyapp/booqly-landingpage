@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { Marketplace, Service, ServiceAddOn } from '@/lib/types';
-import AddOnsModal from './addons-modal';
+import { Marketplace, Service } from '@/lib/types';
+import { richTextToPlain } from '@/lib/rich-text';
 import ReviewsSection from './reviews-section';
 import PoweredBy from './powered-by';
 
@@ -46,68 +46,77 @@ function formatDuration(duration: string | number | undefined): string {
   return raw;
 }
 
+function formatDurationShort(duration: string | number | undefined): string {
+  if (duration == null || duration === '') return '';
+  const raw = String(duration).trim();
+  if (/hr|hour/i.test(raw)) {
+    return raw.replace(/hours?/i, (m) =>
+      m.toLowerCase().startsWith('hour') ? 'hrs' : 'hr'
+    );
+  }
+  if (/min/i.test(raw)) return raw;
+  const n = Number(raw);
+  if (!Number.isNaN(n)) {
+    if (n >= 60 && n % 60 === 0) {
+      const hours = n / 60;
+      return hours === 1 ? '1 hr' : `${hours} hrs`;
+    }
+    return `${n} min`;
+  }
+  return raw;
+}
+
 export default function ServiceListing({
   marketplace,
   selectedServices,
   setSelectedServices,
   onProceedToBooking,
 }: ServiceListingProps) {
-  const [addOnsModalOpen, setAddOnsModalOpen] = useState(false);
-  const [currentService, setCurrentService] = useState<Service | null>(null);
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pdfWidth, setPdfWidth] = useState<number>(390);
   const [expandedDescriptions, setExpandedDescriptions] = useState<
     Record<string, boolean>
   >({});
+  const headerMediaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    const el = headerMediaRef.current;
+    if (!el) return;
+
     const updateWidth = () => {
-      if (typeof window !== 'undefined') {
-        setPdfWidth(Math.min(window.innerWidth, 768));
-      }
+      const width = Math.floor(el.getBoundingClientRect().width);
+      if (width > 0) setPdfWidth(width);
     };
+
     updateWidth();
+    const observer = new ResizeObserver(updateWidth);
+    observer.observe(el);
     window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', updateWidth);
+    };
+  }, [marketplace.bookingPageHeaderPdf]);
 
   const handleAddToCart = (service: Service) => {
     if (selectedServices.find((s) => s.id === service.id)) {
       setSelectedServices([]);
     } else {
-      const hasAddOns =
-        service.addOns && service.addOns.some((addon) => addon.isActive);
-
-      if (hasAddOns) {
-        setCurrentService(service);
-        setAddOnsModalOpen(true);
-      } else {
-        setSelectedServices([service]);
-      }
-    }
-  };
-
-  const handleAddOnsConfirm = (selectedAddOns: ServiceAddOn[]) => {
-    if (currentService) {
-      const serviceWithAddOns = {
-        ...currentService,
-        selectedAddOns,
-      };
-      setSelectedServices([serviceWithAddOns]);
-      setCurrentService(null);
+      setSelectedServices([{ ...service, selectedAddOns: [] }]);
     }
   };
 
   const isInCart = (serviceId: string) =>
     selectedServices.some((s) => s.id === serviceId);
 
-  const totalAmount = selectedServices.reduce((sum, service) => {
-    const addOnsTotal = (service.selectedAddOns || []).reduce(
-      (a, addon) => a + Number(addon.price),
-      0
-    );
-    return sum + Number(service.price) + addOnsTotal;
-  }, 0);
+  const selected = selectedServices[0];
+  const totalAmount = selected
+    ? Number(selected.price) +
+      (selected.selectedAddOns || []).reduce(
+        (a, addon) => a + Number(addon.price),
+        0
+      )
+    : 0;
 
   const formatSchedule = (day: string) => {
     const schedule =
@@ -127,14 +136,9 @@ export default function ServiceListing({
     return !t || t === 'closed' || t === '—';
   };
 
-  const hasBio = Boolean(marketplace.bio?.trim());
-  const hasPolicies = Boolean(
-    marketplace.showPolicyRules && marketplace.policyRules?.trim()
-  );
   const hasReviews = Boolean(
     marketplace.reviews?.some((r) => r.status === 'approved' && r.isPublic)
   );
-  const hasSchedule = Boolean(marketplace.schedule);
   const hasHeaderMedia = Boolean(
     marketplace.bookingPageHeaderPdf || marketplace.bookingPageHeaderImage
   );
@@ -153,12 +157,12 @@ export default function ServiceListing({
   );
 
   return (
-    <div className="min-h-screen bg-white pb-28 md:pb-10">
-      {/* Hero: uploaded header image or PDF */}
+    <div className={`min-h-screen bg-white ${selected ? 'pb-28' : 'pb-10'}`}>
+      {/* Hero: full uploaded header image or PDF — no crop / edge cut */}
       {hasHeaderMedia ? (
-        <div className="w-full bg-white">
+        <div ref={headerMediaRef} className="w-full bg-white overflow-x-hidden">
           {marketplace.bookingPageHeaderPdf ? (
-            <div className="w-full flex flex-col items-center bg-white">
+            <div className="w-full bg-white booking-header-pdf">
               <Document
                 file={marketplace.bookingPageHeaderPdf}
                 onLoadSuccess={({ numPages: n }) => setNumPages(n)}
@@ -182,7 +186,7 @@ export default function ServiceListing({
                       width={pdfWidth}
                       renderTextLayer={false}
                       renderAnnotationLayer={false}
-                      className="!m-0 w-full"
+                      className="booking-header-pdf-page"
                     />
                   ))}
               </Document>
@@ -193,7 +197,7 @@ export default function ServiceListing({
               <img
                 src={marketplace.bookingPageHeaderImage!}
                 alt={marketplace.businessName}
-                className="w-full h-auto block object-cover object-top max-h-[80vh]"
+                className="w-full h-auto block object-contain"
               />
             </div>
           )}
@@ -214,30 +218,6 @@ export default function ServiceListing({
               )}
             </div>
           )}
-        </div>
-      )}
-
-      {/* Desktop sticky book bar when selected */}
-      {selectedServices.length > 0 && (
-        <div className="sticky top-[6.5rem] z-40 hidden md:block">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6">
-            <div className="bg-black text-white rounded-xl shadow-lg p-4 my-3 flex items-center justify-between gap-4">
-              <button
-                type="button"
-                onClick={() => setSelectedServices([])}
-                className="text-sm font-medium text-white/80 hover:text-white"
-              >
-                Clear
-              </button>
-              <button
-                type="button"
-                onClick={() => onProceedToBooking(selectedServices)}
-                className="bg-white text-black px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
-              >
-                Book · ${totalAmount.toFixed(2)}
-              </button>
-            </div>
-          </div>
         </div>
       )}
 
@@ -294,13 +274,32 @@ export default function ServiceListing({
                           <button
                             type="button"
                             onClick={() => handleAddToCart(service)}
-                            className={`shrink-0 px-4 py-2 rounded-md text-xs font-bold tracking-wide uppercase transition-colors ${
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-bold tracking-wide uppercase transition-colors ${
                               selected
-                                ? 'bg-gray-200 text-black'
-                                : 'bg-black text-white hover:bg-gray-900'
+                                ? 'bg-white text-black border border-black'
+                                : 'bg-black text-white border border-black hover:bg-gray-900'
                             }`}
                           >
-                            {selected ? 'Selected' : 'Select'}
+                            {selected ? (
+                              <>
+                                <svg
+                                  className="w-3.5 h-3.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2.5}
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                                Added
+                              </>
+                            ) : (
+                              'Select'
+                            )}
                           </button>
                         </div>
 
@@ -338,42 +337,42 @@ export default function ServiceListing({
           <ReviewsSection reviews={marketplace.reviews} />
         )}
 
-        {hasBio && (
-          <section
-            id="about"
-            className="scroll-mt-28 py-10 border-t border-gray-100"
-          >
-            <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-5">
-              About
-            </h2>
+        <section
+          id="about"
+          className="scroll-mt-28 py-10 border-t border-gray-100"
+        >
+          <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-5">
+            About
+          </h2>
+          {richTextToPlain(marketplace.bio) ? (
             <p className="text-[15px] sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {marketplace.bio}
+              {richTextToPlain(marketplace.bio)}
             </p>
-          </section>
-        )}
+          ) : null}
+        </section>
 
-        {hasPolicies && (
-          <section
-            id="policies"
-            className="scroll-mt-28 py-10 border-t border-gray-100"
-          >
-            <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-5">
-              Policies &amp; Rules
-            </h2>
+        <section
+          id="policies"
+          className="scroll-mt-28 py-10 border-t border-gray-100"
+        >
+          <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-5">
+            Policies &amp; Rules
+          </h2>
+          {richTextToPlain(marketplace.policyRules) ? (
             <p className="text-[15px] sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {marketplace.policyRules}
+              {richTextToPlain(marketplace.policyRules)}
             </p>
-          </section>
-        )}
+          ) : null}
+        </section>
 
-        {hasSchedule && (
-          <section
-            id="hours"
-            className="scroll-mt-28 py-10 border-t border-gray-100"
-          >
-            <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-6">
-              Opening hours
-            </h2>
+        <section
+          id="hours"
+          className="scroll-mt-28 py-10 border-t border-gray-100"
+        >
+          <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-6">
+            Opening hours
+          </h2>
+          {marketplace.schedule ? (
             <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
               <div className="divide-y divide-gray-100">
                 {days.map((day) => {
@@ -410,45 +409,50 @@ export default function ServiceListing({
                 })}
               </div>
             </div>
-          </section>
-        )}
+          ) : null}
+        </section>
 
         <div className="pt-4 pb-8">
           <PoweredBy />
         </div>
       </div>
 
-      {/* Mobile sticky cart */}
-      {selectedServices.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-black text-white p-4 shadow-lg md:hidden z-50 safe-area-pb">
+      {selected && (
+        <div className="fixed bottom-0 left-0 right-0 bg-black text-white p-4 shadow-lg z-50 safe-area-pb">
           <div className="flex items-center justify-between gap-3 max-w-3xl mx-auto">
             <div className="min-w-0">
-              <p className="text-xs text-white/70 truncate">
-                {selectedServices[0]?.name || 'Service selected'}
+              <p className="text-xl font-bold leading-tight">
+                ${totalAmount.toFixed(2)}
               </p>
-              <p className="text-lg font-bold">${totalAmount.toFixed(2)}</p>
+              <p className="text-sm text-white/75 truncate mt-0.5">
+                {selected.name}
+                {formatDurationShort(selected.duration)
+                  ? ` · ${formatDurationShort(selected.duration)}`
+                  : ''}
+              </p>
             </div>
             <button
               type="button"
               onClick={() => onProceedToBooking(selectedServices)}
-              className="bg-white text-black px-5 py-3 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
+              className="shrink-0 inline-flex items-center gap-2 border border-white text-white px-5 py-3 rounded-lg font-bold text-sm tracking-wide uppercase hover:bg-white/10 transition-colors"
             >
               Continue
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
             </button>
           </div>
         </div>
-      )}
-
-      {currentService && (
-        <AddOnsModal
-          service={currentService}
-          isOpen={addOnsModalOpen}
-          onClose={() => {
-            setAddOnsModalOpen(false);
-            setCurrentService(null);
-          }}
-          onConfirm={handleAddOnsConfirm}
-        />
       )}
     </div>
   );

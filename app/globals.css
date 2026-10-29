@@ -17,7 +17,8 @@
 }
 
 .font-booking-serif {
-  font-family: var(--font-playfair), ui-serif, Georgia, serif;
+  font-family: var(--font-playfair), "Playfair Display", ui-serif, Georgia, serif;
+  font-optical-sizing: auto;
 }
 
 /* Force light mode - disable dark mode completely */
@@ -43,4 +44,29 @@ body {
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+/* Booking header PDF: show full page(s), no crop / edge cut */
+.booking-header-pdf,
+.booking-header-pdf .react-pdf__Document,
+.booking-header-pdf .react-pdf__Page {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.booking-header-pdf-page {
+  display: block !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+.booking-header-pdf-page canvas,
+.booking-header-pdf .react-pdf__Page__canvas {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  max-width: 100% !important;
 }

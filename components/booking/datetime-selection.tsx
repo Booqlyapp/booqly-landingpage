@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Image from 'next/image';
-import { Service, Marketplace, ServiceAddOn } from '@/lib/types';
-import { getAvailableTimeSlots } from '@/lib/api';
+import { Service, Marketplace } from '@/lib/types';
+import { getAvailableTimeSlots, getBookableDates } from '@/lib/api';
 import { formatLocalDateYmd } from '@/lib/wall-clock';
 
 interface DateTimeSelectionProps {
@@ -13,371 +13,461 @@ interface DateTimeSelectionProps {
   onBack: () => void;
 }
 
+function formatDurationShort(duration: string | number | undefined): string {
+  if (duration == null || duration === '') return '';
+  const raw = String(duration).trim();
+  if (/hr|hour/i.test(raw)) {
+    return raw.replace(/hours?/i, (m) =>
+      m.toLowerCase().startsWith('hour') ? 'hrs' : 'hr'
+    );
+  }
+  if (/min/i.test(raw)) return raw;
+  const n = Number(raw);
+  if (!Number.isNaN(n)) {
+    if (n >= 60 && n % 60 === 0) {
+      const hours = n / 60;
+      return hours === 1 ? '1 hr' : `${hours} hrs`;
+    }
+    return `${n} min`;
+  }
+  return raw;
+}
+
+function formatDurationLong(duration: string | number | undefined): string {
+  if (duration == null || duration === '') return '';
+  const raw = String(duration).trim();
+  if (/min|hr|hour/i.test(raw)) return raw;
+  const n = Number(raw);
+  if (!Number.isNaN(n)) {
+    if (n >= 60 && n % 60 === 0) {
+      const hours = n / 60;
+      return hours === 1 ? '1 hour' : `${hours} hours`;
+    }
+    return `${n} min`;
+  }
+  return raw;
+}
+
+function computeDeposit(service: Service, total: number): number | null {
+  if (!service.requireDeposit || service.depositAmount == null) return null;
+  const amount = Number(service.depositAmount);
+  if (Number.isNaN(amount) || amount <= 0) return null;
+  if (service.depositType === 'percentage') {
+    return (total * amount) / 100;
+  }
+  return amount;
+}
+
+function monthBounds(month: Date): { from: string; to: string } {
+  const start = new Date(month.getFullYear(), month.getMonth(), 1);
+  const end = new Date(month.getFullYear(), month.getMonth() + 1, 0);
+  return {
+    from: formatLocalDateYmd(start),
+    to: formatLocalDateYmd(end),
+  };
+}
+
 export default function DateTimeSelection({
   marketplace,
   selectedServices,
   onSelectDateTime,
-  onBack,
 }: DateTimeSelectionProps) {
+  const service = selectedServices[0];
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [availableSlots, setAvailableSlots] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [showReview, setShowReview] = useState(false);
+  const [bookableDates, setBookableDates] = useState<Set<string>>(new Set());
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [loadingDates, setLoadingDates] = useState(false);
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
 
-  // Scroll to top on mount
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  // Calculate total price from all services and their add-ons
-  const calculateTotal = (): number => {
-    return selectedServices.reduce((total: number, service: Service) => {
-      const servicePrice = typeof service.price === 'string' ? parseFloat(service.price) : service.price;
-      const addOnsTotal = (service.selectedAddOns || []).reduce((sum: number, addon: ServiceAddOn) => {
-        const addonPrice = typeof addon.price === 'string' ? parseFloat(addon.price) : addon.price;
-        return sum + addonPrice;
-      }, 0);
-      return total + servicePrice + addOnsTotal;
-    }, 0);
-  };
+  useEffect(() => {
+    let cancelled = false;
+
+    const fetchDates = async () => {
+      try {
+        setLoadingDates(true);
+        const { from, to } = monthBounds(currentMonth);
+        const dates = await getBookableDates(marketplace.id, from, to);
+        if (!cancelled) {
+          setBookableDates(new Set(dates));
+        }
+      } catch (error) {
+        console.error('Error fetching bookable dates:', error);
+        if (!cancelled) setBookableDates(new Set());
+      } finally {
+        if (!cancelled) setLoadingDates(false);
+      }
+    };
+
+    void fetchDates();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentMonth, marketplace.id]);
 
   useEffect(() => {
-    if (!selectedDate) return;
+    if (!selectedDate || !service) return;
 
+    let cancelled = false;
     const fetchSlots = async () => {
       try {
-        setLoading(true);
+        setLoadingSlots(true);
         const dateStr = formatLocalDateYmd(selectedDate);
-        // Use first service for time slots (all services will be booked at same time)
-        const slots = await getAvailableTimeSlots(marketplace.id, selectedServices[0].id, dateStr);
-        setAvailableSlots(slots);
+        const slots = await getAvailableTimeSlots(
+          marketplace.id,
+          service.id,
+          dateStr
+        );
+        if (!cancelled) {
+          setAvailableSlots(Array.isArray(slots) ? slots : []);
+        }
       } catch (error) {
         console.error('Error fetching time slots:', error);
-        setAvailableSlots([]);
+        if (!cancelled) setAvailableSlots([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoadingSlots(false);
       }
     };
 
     void fetchSlots();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedDate]);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedDate, marketplace.id, service]);
 
-  const getDaysInMonth = (date: Date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
+  const days = useMemo(() => {
+    const year = currentMonth.getFullYear();
+    const month = currentMonth.getMonth();
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
+    const result: (Date | null)[] = [];
 
-    const days: (Date | null)[] = [];
-    
-    // Add empty slots for days before the first day of the month
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
+      result.push(null);
     }
-    
-    // Add all days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(new Date(year, month, day));
+    for (let day = 1; day <= lastDay.getDate(); day++) {
+      result.push(new Date(year, month, day));
     }
-    
-    return days;
-  };
+    return result;
+  }, [currentMonth]);
+
+  const today = useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date);
     setSelectedTime(null);
+    setAvailableSlots([]);
   };
 
-  const handleNext = () => {
-    if (selectedDate && selectedTime) {
-      setShowReview(true);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+  const canContinue = Boolean(selectedDate && selectedTime);
+
+  const handleContinue = () => {
+    if (!selectedDate || !selectedTime) return;
+    onSelectDateTime(formatLocalDateYmd(selectedDate), selectedTime);
+  };
+
+  const selectedAddOns = service?.selectedAddOns || [];
+  const servicePrice = Number(service?.price || 0);
+  const addOnsTotal = selectedAddOns.reduce(
+    (sum, addon) => sum + Number(addon.price),
+    0
+  );
+  const totalPrice = servicePrice + addOnsTotal;
+  const deposit = service ? computeDeposit(service, totalPrice) : null;
+  const durationLabel = formatDurationLong(service?.duration);
+  const durationShort = formatDurationShort(service?.duration);
+
+  const stylistLabel = (() => {
+    if (!service) return null;
+    if (service.selectedProviderId) {
+      const member = service.providerTeamMembers?.find(
+        (m) => m.id === service.selectedProviderId
+      );
+      return member ? `With ${member.name}` : 'With selected stylist';
     }
-  };
-
-  const handleConfirm = () => {
-    if (selectedDate && selectedTime) {
-      const dateStr = formatLocalDateYmd(selectedDate);
-      onSelectDateTime(dateStr, selectedTime);
+    if (service.providerTeamMembers && service.providerTeamMembers.length > 0) {
+      return 'With First available stylist';
     }
-  };
+    return null;
+  })();
 
-  const handleBackFromReview = () => {
-    setShowReview(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const selectedDateLabel = selectedDate
+    ? selectedDate.toLocaleDateString('en-US', {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+      })
+    : null;
 
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  const scheduledLabel =
+    selectedDate && selectedTime
+      ? `${selectedDate.toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'long',
+          day: 'numeric',
+        })} at ${selectedTime}`
+      : null;
 
-  const days = getDaysInMonth(currentMonth);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const monthLabel = currentMonth.toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
 
-  // If showing review screen
-  if (showReview && selectedDate && selectedTime) {
-    return (
-      <div>
-        <h2 className="text-2xl md:text-3xl font-bold text-black mb-2">Review & Confirm</h2>
-        <p className="text-sm md:text-base text-gray-600 mb-6 md:mb-8">Please review your booking details</p>
+  const canGoPrevMonth = (() => {
+    const prev = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
+    const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    return prev >= thisMonth;
+  })();
 
-        {/* Services */}
-        {selectedServices.map((service, index) => (
-          <div key={index} className="bg-white rounded-2xl p-4 md:p-6 mb-6 border border-gray-200">
-            <div className="flex flex-col md:flex-row gap-4">
-              {/* Service Image */}
-              <div className="relative w-full md:w-32 h-48 md:h-32 rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-                <Image
-                  src={service.imageUrl || '/images/beautybrushes.png'}
-                  alt={service.name}
-                  fill
-                  className="object-cover"
-                />
+  return (
+    <div className="min-h-screen bg-white pb-80">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 pt-8 pb-6">
+        <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-8">
+          Pick a date &amp; time
+        </h2>
+
+        {/* Month calendar */}
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-5">
+            <button
+              type="button"
+              onClick={() =>
+                canGoPrevMonth &&
+                setCurrentMonth(
+                  new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1)
+                )
+              }
+              disabled={!canGoPrevMonth}
+              className={`p-2 rounded-full ${
+                canGoPrevMonth
+                  ? 'hover:bg-gray-100 text-black'
+                  : 'text-gray-300 cursor-not-allowed'
+              }`}
+              aria-label="Previous month"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h3 className="text-base font-semibold text-black">{monthLabel}</h3>
+            <button
+              type="button"
+              onClick={() =>
+                setCurrentMonth(
+                  new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1)
+                )
+              }
+              className="p-2 rounded-full hover:bg-gray-100 text-black"
+              aria-label="Next month"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-7 gap-1 mb-2">
+            {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
+              <div
+                key={`${day}-${i}`}
+                className="text-center text-xs font-medium text-neutral-500 py-1"
+              >
+                {day}
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-7 gap-1">
+            {days.map((date, index) => {
+              if (!date) {
+                return <div key={`empty-${index}`} className="h-10" />;
+              }
+
+              const ymd = formatLocalDateYmd(date);
+              const isPast = date < today;
+              const isBookable = bookableDates.has(ymd) && !isPast;
+              const isSelected =
+                selectedDate != null &&
+                formatLocalDateYmd(selectedDate) === ymd;
+
+              return (
+                <button
+                  key={ymd}
+                  type="button"
+                  disabled={!isBookable}
+                  onClick={() => isBookable && handleDateSelect(date)}
+                  className={`h-10 w-10 mx-auto rounded-full flex items-center justify-center text-sm transition-colors ${
+                    isSelected
+                      ? 'bg-black text-white font-semibold'
+                      : isBookable
+                        ? 'border border-black text-black font-medium hover:bg-gray-50'
+                        : 'text-neutral-300 cursor-not-allowed'
+                  }`}
+                >
+                  {date.getDate()}
+                </button>
+              );
+            })}
+          </div>
+
+          {loadingDates && (
+            <p className="text-center text-sm text-neutral-500 mt-4">
+              Loading available dates…
+            </p>
+          )}
+        </div>
+
+        {/* Date / time area */}
+        {!selectedDate ? (
+          <div className="pt-2">
+            <p className="text-base font-semibold text-black">Choose a date</p>
+          </div>
+        ) : (
+          <div className="pt-2">
+            <p className="text-base font-bold text-black mb-4">
+              {selectedDateLabel}
+            </p>
+
+            {loadingSlots ? (
+              <div className="py-6 text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto" />
+                <p className="mt-2 text-sm text-neutral-500">Loading times…</p>
+              </div>
+            ) : availableSlots.length > 0 ? (
+              <div className="flex flex-wrap gap-3">
+                {availableSlots.map((slot) => {
+                  const selected = selectedTime === slot;
+                  return (
+                    <button
+                      key={slot}
+                      type="button"
+                      onClick={() => setSelectedTime(slot)}
+                      className={`min-w-[7.5rem] px-4 py-3 rounded-xl border text-sm font-medium transition-colors ${
+                        selected
+                          ? 'bg-black text-white border-black'
+                          : 'bg-white text-black border-black hover:bg-gray-50'
+                      }`}
+                    >
+                      {slot}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="text-sm text-neutral-500 py-2">
+                No available times for this date.
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* YOUR APPOINTMENT summary */}
+      {service && (
+        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.06)]">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-4">
+            <p className="text-[11px] font-semibold tracking-wider text-neutral-500 uppercase mb-3">
+              Your appointment
+            </p>
+
+            <div className="rounded-xl border border-gray-200 p-3.5 mb-3">
+              <div className="flex items-center gap-3">
+                <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100 shrink-0">
+                  <Image
+                    src={service.imageUrl || '/images/beautybrushes.png'}
+                    alt={service.name}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+                <div className="min-w-0">
+                  <p className="font-booking-serif text-lg font-bold text-black truncate">
+                    {service.name}
+                  </p>
+                  <p className="text-sm text-neutral-500">
+                    {durationLabel}
+                    {durationLabel ? ' · ' : ''}
+                    ${servicePrice.toFixed(2)}
+                  </p>
+                </div>
               </div>
 
-              {/* Service Details */}
-              <div className="flex-1">
-                <h3 className="text-lg md:text-xl font-bold text-black mb-1 md:mb-2">{service.name}</h3>
-                <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">With any professional</p>
+              {selectedAddOns.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-gray-100 space-y-2">
+                  {selectedAddOns.map((addon) => (
+                    <div
+                      key={addon.id}
+                      className="flex items-center justify-between gap-3 text-sm"
+                    >
+                      <span className="text-neutral-700 truncate">
+                        + {addon.title}
+                      </span>
+                      <span className="font-medium text-black shrink-0">
+                        {Number(addon.price) > 0
+                          ? `$${Number(addon.price).toFixed(2)}`
+                          : 'Included'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 text-gray-700">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-sm md:text-base">{service.duration} min</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-base md:text-lg font-semibold">${typeof service.price === 'string' ? service.price : service.price.toFixed(2)}</span>
-                  </div>
+              {stylistLabel && (
+                <p className="mt-3 pt-3 border-t border-gray-100 text-sm text-neutral-600">
+                  {stylistLabel}
+                </p>
+              )}
+
+              {scheduledLabel && (
+                <p className="mt-2 text-sm text-neutral-600">{scheduledLabel}</p>
+              )}
+
+              <div className="mt-3 pt-3 border-t border-gray-100 flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-bold text-black">Total</p>
+                  <p className="text-sm text-neutral-500">
+                    {durationShort || '—'}
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-black">${totalPrice.toFixed(2)}</p>
+                  {deposit != null && (
+                    <p className="text-sm text-neutral-500">
+                      ${deposit.toFixed(2)} deposit due today
+                    </p>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Add-ons if any */}
-            {service.selectedAddOns && service.selectedAddOns.length > 0 && (
-              <div className="mt-4 pt-4 border-t border-gray-200">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Add-ons:</p>
-                {service.selectedAddOns.map((addon: ServiceAddOn, addonIndex: number) => (
-                  <div key={addonIndex} className="flex justify-between text-sm text-gray-600 mb-1">
-                    <span>+ {addon.title}</span>
-                    <span>${typeof addon.price === 'string' ? addon.price : addon.price.toFixed(2)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={handleContinue}
+              disabled={!canContinue}
+              className={`w-full py-3.5 rounded-xl font-bold text-sm tracking-wide uppercase transition-colors ${
+                canContinue
+                  ? 'bg-black text-white hover:bg-gray-900'
+                  : 'bg-neutral-200 text-neutral-400 cursor-not-allowed'
+              }`}
+            >
+              Continue
+            </button>
           </div>
-        ))}
-
-        {/* Booking Details */}
-        <div className="bg-white rounded-2xl p-6 mb-6 border border-gray-200 space-y-4">
-          <div className="flex items-center gap-4">
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <div className="flex-1">
-              <span className="text-gray-600">Date</span>
-              <p className="font-semibold text-black">
-                {selectedDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-              </p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <div className="flex-1">
-              <span className="text-gray-600">Time</span>
-              <p className="font-semibold text-black">{selectedTime}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-            <div className="flex-1">
-              <span className="text-gray-600">Professional</span>
-              <p className="font-semibold text-black">Any Professional</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Total */}
-        <div className="bg-white rounded-2xl p-6 mb-6 border border-gray-200">
-          <div className="flex justify-between items-center">
-            <span className="text-2xl font-bold text-black">Total</span>
-            <span className="text-3xl font-bold text-black">${calculateTotal().toFixed(2)}</span>
-          </div>
-        </div>
-
-        {/* Secure Booking Notice */}
-        <div className="bg-blue-50 rounded-2xl p-6 mb-8 border border-blue-100">
-          <div className="flex items-start gap-4">
-            <svg className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-            <div>
-              <h4 className="font-semibold text-black mb-1">Secure booking</h4>
-              <p className="text-sm text-gray-600">Your information is safe and encrypted.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-          <button
-            onClick={handleBackFromReview}
-            className="w-full sm:w-auto px-6 sm:px-8 py-3 border-2 border-black rounded-full font-medium hover:bg-gray-100 transition-colors"
-          >
-            Back
-          </button>
-          <button
-            onClick={handleConfirm}
-            className="flex-1 px-6 sm:px-8 py-3 bg-black text-white rounded-full font-medium hover:bg-gray-800 transition-colors"
-          >
-            Verify and Confirm
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      <h2 className="text-xl md:text-2xl font-bold text-black mb-4 md:mb-6">SELECT A DAY</h2>
-
-      {/* Calendar */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 mb-6 md:mb-8">
-        {/* Month Navigation */}
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-            className="p-2 hover:bg-gray-100 rounded"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h3 className="text-lg md:text-xl font-semibold">
-            {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
-          </h3>
-          <button
-            onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-            className="p-2 hover:bg-gray-100 rounded"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Day Headers */}
-        <div className="grid grid-cols-7 gap-2 mb-2">
-          {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, i) => (
-            <div key={i} className="text-center font-semibold text-gray-600 text-sm">
-              {day}
-            </div>
-          ))}
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-0.5 sm:gap-2 md:gap-3">
-          {days.map((date, index) => {
-            if (!date) {
-              return <div key={index} className="h-8 sm:h-10 md:h-12"></div>;
-            }
-
-            const isPast = date < today;
-            const isSelected = selectedDate?.toDateString() === date.toDateString();
-            const _isToday = date.toDateString() === today.toDateString();
-
-            return (
-              <button
-                key={index}
-                onClick={() => !isPast && handleDateSelect(date)}
-                disabled={isPast}
-                className={`h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 mx-auto rounded-full flex items-center justify-center text-xs sm:text-sm font-medium transition-all leading-none
-                  ${isPast ? 'text-gray-300 cursor-not-allowed border border-gray-200 sm:border-2' : 'cursor-pointer'}
-                  ${isSelected 
-                    ? 'bg-[#759CC9] text-white hover:bg-[#759CC9] shadow-md border border-[#759CC9] sm:border-2' 
-                    : 'border border-gray-300 sm:border-2 text-gray-700 hover:border-[#759CC9] hover:text-[#759CC9]'}
-                `}
-              >
-                {date.getDate()}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Time Selection */}
-      {selectedDate && (
-        <div>
-          <h2 className="text-2xl font-bold text-black mb-6">SELECT A TIME</h2>
-          
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-              <p className="mt-2 text-gray-600">Loading available times...</p>
-            </div>
-          ) : availableSlots.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
-              {availableSlots.map((slot) => (
-                <button
-                  key={slot}
-                  onClick={() => setSelectedTime(slot)}
-                  className={`py-4 px-6 rounded-full border-2 font-medium transition-colors
-                    ${selectedTime === slot
-                      ? 'bg-black text-white border-black'
-                      : 'border-gray-300 hover:border-black'
-                    }
-                  `}
-                >
-                  {slot}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-gray-600">
-              No available time slots for this date.
-            </div>
-          )}
         </div>
       )}
-
-      {/* Action Buttons */}
-      <div className="flex gap-4 mt-8">
-        <button
-          onClick={onBack}
-          className="px-8 py-3 border-2 border-black rounded-full font-medium hover:bg-gray-100 transition-colors"
-        >
-          Back
-        </button>
-        <button
-          onClick={handleNext}
-          disabled={!selectedDate || !selectedTime}
-          className={`flex-1 px-8 py-3 rounded-full font-medium transition-colors
-            ${selectedDate && selectedTime
-              ? 'bg-black text-white hover:bg-gray-800'
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }
-          `}
-        >
-          Next
-        </button>
-      </div>
     </div>
   );
 }

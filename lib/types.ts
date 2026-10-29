@@ -1,3 +1,11 @@
+export interface ProviderTeamMember {
+  id: string;
+  name: string;
+  profilePic?: string | null;
+  jobTitle?: string | null;
+  isOwner?: boolean;
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -11,7 +19,11 @@ export interface Service {
   depositAmount?: number | string;
   imageUrl?: string;
   addOns?: ServiceAddOn[];
-  selectedAddOns?: ServiceAddOn[]; // Selected add-ons from modal
+  selectedAddOns?: ServiceAddOn[];
+  providerTeamMemberIds?: string[];
+  providerTeamMembers?: ProviderTeamMember[];
+  /** null / undefined = no preference (first available) */
+  selectedProviderId?: string | null;
 }
 
 export interface ServiceAddOn {

@@ -32,16 +32,40 @@ export async function getAvailableTimeSlots(
         cache: 'no-store',
       }
     );
-    console.log("Hehe", response)
 
     if (!response.ok) {
       throw new Error('Failed to fetch available time slots');
     }
 
     const data = await response.json();
-    return data.data;
+    return data.data as string[];
   } catch (error) {
     console.error('Error fetching time slots:', error);
+    throw error;
+  }
+}
+
+export async function getBookableDates(
+  marketplaceId: string,
+  from: string,
+  to: string
+) {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/public/bookable-dates?marketplaceId=${marketplaceId}&from=${from}&to=${to}`,
+      {
+        cache: 'no-store',
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch bookable dates');
+    }
+
+    const data = await response.json();
+    return (data.data?.dates || []) as string[];
+  } catch (error) {
+    console.error('Error fetching bookable dates:', error);
     throw error;
   }
 }

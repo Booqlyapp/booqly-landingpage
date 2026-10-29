@@ -3,13 +3,58 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import SubdomainNavbar from '@/components/subdomain-navbar';
-import PoweredBy from '@/components/booking/powered-by';
-import { Service, Marketplace, BookingData } from '@/lib/types';
+import BookingStepHeader from '@/components/booking/booking-step-header';
+import { Service, ServiceAddOn, Marketplace, BookingData } from '@/lib/types';
 import { getMarketplaceByCustomLink } from '@/lib/api';
 import ServiceListing from '@/components/booking/service-listing';
+import AddOnsSelection from '@/components/booking/addons-selection';
+import StylistSelection from '@/components/booking/stylist-selection';
 import DateTimeSelection from '@/components/booking/datetime-selection';
 import CustomerDetails from '@/components/booking/customer-details';
 import StripeWrapper from '@/components/booking/stripe-wrapper';
+
+function serviceHasActiveAddOns(service: Service | undefined): boolean {
+  return Boolean(service?.addOns?.some((addon) => addon.isActive));
+}
+
+function serviceHasTeamMembers(service: Service | undefined): boolean {
+  return Boolean(service?.providerTeamMembers && service.providerTeamMembers.length > 0);
+}
+
+/** Next step after services / add-ons / stylist decisions. */
+function nextAfterServiceExtras(
+  service: Service | undefined,
+  from: 'services' | 'addons' | 'stylist'
+): number {
+  // 0=services, 1=addons, 2=stylist, 3=datetime, 4=details
+  if (from === 'services') {
+    if (serviceHasActiveAddOns(service)) return 1;
+    if (serviceHasTeamMembers(service)) return 2;
+    return 3;
+  }
+  if (from === 'addons') {
+    if (serviceHasTeamMembers(service)) return 2;
+    return 3;
+  }
+  return 3;
+}
+
+function previousBefore(
+  service: Service | undefined,
+  current: number
+): number {
+  if (current === 1) return 0;
+  if (current === 2) {
+    return serviceHasActiveAddOns(service) ? 1 : 0;
+  }
+  if (current === 3) {
+    if (serviceHasTeamMembers(service)) return 2;
+    if (serviceHasActiveAddOns(service)) return 1;
+    return 0;
+  }
+  if (current === 4) return 3;
+  return 0;
+}
 
 export default function BookingPage() {
   const params = useParams();
@@ -18,7 +63,8 @@ export default function BookingPage() {
   const [marketplace, setMarketplace] = useState<Marketplace | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentStep, setCurrentStep] = useState(0); // 0=service listing, 1=date/time, 2=details
+  // 0=services, 1=add-ons, 2=stylist, 3=date/time, 4=details
+  const [currentStep, setCurrentStep] = useState(0);
   const [selectedServices, setSelectedServices] = useState<Service[]>([]);
   const [bookingData, setBookingData] = useState<BookingData>({
     service: null,
@@ -52,10 +98,41 @@ export default function BookingPage() {
     }
   }, [subdomain]);
 
-  const handleProceedToBooking = (services: Service[]) => {
+  const selectedService = selectedServices[0];
+
+  const handleProceedFromServices = (services: Service[]) => {
     setSelectedServices(services);
-    // Go directly to date/time for all cases (single or multiple services)
-    setCurrentStep(2);
+    setCurrentStep(nextAfterServiceExtras(services[0], 'services'));
+  };
+
+  const handleAddOnsContinue = (selectedAddOns: ServiceAddOn[]) => {
+    if (!selectedService) return;
+    const updated = {
+      ...selectedService,
+      selectedAddOns,
+    };
+    setSelectedServices([updated]);
+    setCurrentStep(nextAfterServiceExtras(updated, 'addons'));
+  };
+
+  const handleStylistContinue = (selectedProviderId: string | null) => {
+    if (!selectedService) return;
+    setSelectedServices([
+      {
+        ...selectedService,
+        selectedProviderId,
+      },
+    ]);
+    setCurrentStep(3);
+  };
+
+  const handleDateTimeSelect = (date: string, time: string) => {
+    setBookingData((prev) => ({ ...prev, date, time }));
+    setCurrentStep(4);
+  };
+
+  const handleBack = () => {
+    setCurrentStep(previousBefore(selectedService, currentStep));
   };
 
   if (loading) {
@@ -78,127 +155,84 @@ export default function BookingPage() {
         <SubdomainNavbar businessName="Error" />
         <div className="flex items-center justify-center h-[calc(100vh-80px)]">
           <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">Marketplace Not Found</h1>
-            <p className="text-gray-600">We couldn&apos;t find this booking page.</p>
+            <h1 className="text-2xl font-bold text-gray-900 mb-2">
+              Marketplace Not Found
+            </h1>
+            <p className="text-gray-600">
+              We couldn&apos;t find this booking page.
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-
-  const handleDateTimeSelect = (date: string, time: string) => {
-    setBookingData(prev => ({ ...prev, date, time }));
-    setCurrentStep(3); // Go to customer details
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
-      if (currentStep === 1) {
-        // Going back to service listing
-        setBookingData(prev => ({ ...prev, service: null }));
-      }
-    }
-  };
-
   const listingNavItems =
     currentStep === 0
       ? [
           { id: 'services', label: 'Services' },
-          ...(marketplace.bio?.trim()
-            ? [{ id: 'about', label: 'About' }]
-            : []),
-          ...(marketplace.showPolicyRules && marketplace.policyRules?.trim()
-            ? [{ id: 'policies', label: 'Policies & Rules' }]
-            : []),
-          ...(marketplace.schedule
-            ? [{ id: 'hours', label: 'Hours' }]
-            : []),
+          { id: 'about', label: 'About' },
+          { id: 'policies', label: 'Policies & Rules' },
+          { id: 'hours', label: 'Hours' },
         ]
       : [];
 
+  const showRedesignedStep = currentStep >= 1 && currentStep <= 4;
+  const headerStepNumber =
+    currentStep === 1
+      ? 2
+      : currentStep === 2
+        ? 3
+        : currentStep === 3
+          ? 4
+          : currentStep === 4
+            ? 5
+            : 1;
+
   return (
     <div className="min-h-screen bg-white">
-      <SubdomainNavbar 
-        businessName={marketplace.businessName} 
-        cartCount={selectedServices.length}
-        onCartClick={() => setCurrentStep(0)}
-        navItems={listingNavItems}
-      />
-
-      {/* Progress Indicator - Hidden on step 0 (service listing) */}
-      {currentStep > 0 && (
-        <div className="bg-white border-b">
-          <div className="max-w-7xl mx-auto px-4 py-8">
-            <div className="flex items-center justify-center gap-4 md:gap-8">
-              {/* Step 1: Select Service - Always Completed */}
-              <div className="flex flex-col items-center">
-                <div className="w-12 h-12 rounded-full flex items-center justify-center border-2 bg-black border-black text-white">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-                <p className="mt-2 text-xs md:text-sm font-medium text-black text-center">SELECT SERVICE</p>
-              </div>
-
-              {/* Connector */}
-              <div className={`h-0.5 w-12 md:w-24 ${currentStep >= 2 ? 'bg-black' : 'bg-gray-300'}`}></div>
-
-              {/* Step 2: Date & Location */}
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
-                    currentStep === 2
-                      ? 'bg-[#759CC9] border-[#759CC9] text-white'
-                      : currentStep > 2
-                      ? 'bg-black border-black text-white'
-                      : 'bg-white border-gray-300 text-gray-400'
-                  }`}
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                </div>
-                <p className="mt-2 text-xs md:text-sm font-medium text-black text-center">DATE & LOCATION</p>
-              </div>
-
-              {/* Connector */}
-              <div className={`h-0.5 w-12 md:w-24 ${currentStep >= 3 ? 'bg-black' : 'bg-gray-300'}`}></div>
-
-              {/* Step 3: Your Details */}
-              <div className="flex flex-col items-center">
-                <div
-                  className={`w-12 h-12 rounded-full flex items-center justify-center border-2 ${
-                    currentStep === 3
-                      ? 'bg-[#759CC9] border-[#759CC9] text-white'
-                      : currentStep > 3
-                      ? 'bg-black border-black text-white'
-                      : 'bg-white border-gray-300 text-gray-400'
-                  }`}
-                >
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <p className="mt-2 text-xs md:text-sm font-medium text-black text-center">YOUR DETAILS</p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {currentStep === 0 && (
+        <SubdomainNavbar
+          businessName={marketplace.businessName}
+          cartCount={selectedServices.length}
+          onCartClick={() => setCurrentStep(0)}
+          navItems={listingNavItems}
+        />
       )}
 
-      {/* Content */}
-      <div className={currentStep === 0 ? '' : 'max-w-4xl mx-auto px-4 py-8'}>
+      {showRedesignedStep && (
+        <BookingStepHeader
+          businessName={marketplace.businessName}
+          stepNumber={headerStepNumber}
+          onBack={handleBack}
+        />
+      )}
+
+      <div>
         {currentStep === 0 && (
           <ServiceListing
             marketplace={marketplace}
             selectedServices={selectedServices}
             setSelectedServices={setSelectedServices}
-            onProceedToBooking={handleProceedToBooking}
+            onProceedToBooking={handleProceedFromServices}
           />
         )}
-        {currentStep === 2 && selectedServices.length > 0 && (
+
+        {currentStep === 1 && selectedService && (
+          <AddOnsSelection
+            service={selectedService}
+            onContinue={handleAddOnsContinue}
+          />
+        )}
+
+        {currentStep === 2 && selectedService && (
+          <StylistSelection
+            service={selectedService}
+            onContinue={handleStylistContinue}
+          />
+        )}
+
+        {currentStep === 3 && selectedServices.length > 0 && (
           <DateTimeSelection
             marketplace={marketplace}
             selectedServices={selectedServices}
@@ -206,25 +240,23 @@ export default function BookingPage() {
             onBack={handleBack}
           />
         )}
-        {currentStep === 3 && selectedServices.length > 0 && bookingData.date && bookingData.time && (
-          <StripeWrapper>
-            <CustomerDetails
-              marketplace={marketplace}
-              selectedServices={selectedServices}
-              bookingData={bookingData}
-              setBookingData={setBookingData}
-              onBack={handleBack}
-            />
-          </StripeWrapper>
-        )}
+
+        {currentStep === 4 &&
+          selectedServices.length > 0 &&
+          bookingData.date &&
+          bookingData.time && (
+            <StripeWrapper>
+              <CustomerDetails
+                marketplace={marketplace}
+                selectedServices={selectedServices}
+                bookingData={bookingData}
+                setBookingData={setBookingData}
+                onBack={handleBack}
+              />
+            </StripeWrapper>
+          )}
       </div>
 
-      {/* Powered by Booqly - Show on steps 1-3 */}
-      {currentStep > 0 && (
-        <div className="max-w-4xl mx-auto px-4">
-          <PoweredBy />
-        </div>
-      )}
     </div>
   );
 }
