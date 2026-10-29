@@ -53,21 +53,23 @@ export default function ServiceContinueBar({
         bottom: 0,
         zIndex: 9999,
         width: '100%',
-        backgroundColor: '#ffffff',
-        borderTop: '1px solid #e5e7eb',
+        backgroundColor: 'var(--booking-bg, #ffffff)',
+        borderTop:
+          '1px solid color-mix(in srgb, var(--booking-text, #111) 12%, transparent)',
+        color: 'var(--booking-text, #111111)',
       }}
     >
       <div className="mx-auto flex w-full max-w-3xl items-center justify-between gap-4 px-4 py-3.5 pb-[max(0.875rem,env(safe-area-inset-bottom))] sm:px-6">
         <div className="min-w-0">
-          <p className="text-xl font-bold leading-tight text-black">
+          <p className="text-xl font-bold leading-tight">
             ${Number.isNaN(price) ? '0.00' : price.toFixed(2)}
           </p>
-          <p className="truncate text-sm text-neutral-500">{meta}</p>
+          <p className="truncate text-sm opacity-70">{meta}</p>
         </div>
         <button
           type="button"
           onClick={onContinue}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-black px-4 py-2.5 text-sm font-bold uppercase tracking-wide text-white"
+          className="booking-primary-btn shrink-0 inline-flex items-center gap-1.5 rounded-lg px-4 py-2.5 text-sm font-bold uppercase tracking-wide"
         >
           Continue
           <svg

@@ -1,3 +1,5 @@
+import type { BookingPageColors } from './booking-page-colors';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000';
 
 
@@ -149,4 +151,28 @@ export async function createExternalAppointmentWithDeposit(appointmentData: {
     console.error('Error creating appointment with deposit:', error);
     throw error;
   }
+}
+
+export async function saveBookingPageColors(
+  marketplaceId: string,
+  bookingPageColors: BookingPageColors,
+  accessToken: string
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/marketplace/update-booking-page-colors`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({ marketplaceId, bookingPageColors }),
+    }
+  );
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Failed to save booking page colors');
+  }
+  return data;
 }

@@ -158,7 +158,7 @@ export default function AppointmentSummaryFooter({
         className={`mt-4 w-full rounded-xl py-3.5 text-sm font-bold uppercase tracking-wide transition-colors ${
           continueDisabled
             ? 'cursor-not-allowed bg-neutral-200 text-neutral-400'
-            : 'bg-black text-white hover:bg-gray-900'
+            : 'booking-primary-btn'
         }`}
       >
         {continueLabel}

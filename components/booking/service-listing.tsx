@@ -133,7 +133,7 @@ export default function ServiceListing({
   );
 
   return (
-    <div className={`min-h-screen bg-white ${selected ? 'pb-28' : 'pb-10'}`}>
+    <div className={`min-h-screen ${selected ? 'pb-28' : 'pb-10'}`}>
       {/* Hero: full uploaded header image or PDF — no crop / edge cut */}
       {hasHeaderMedia ? (
         <div ref={headerMediaRef} className="w-full bg-white overflow-x-hidden">
@@ -233,10 +233,10 @@ export default function ServiceListing({
                           <button
                             type="button"
                             onClick={() => handleAddToCart(service)}
-                            className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-bold tracking-wide uppercase transition-colors ${
+                            className={`shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-md text-xs font-bold tracking-wide uppercase transition-colors border ${
                               selected
-                                ? 'bg-white text-black border border-black'
-                                : 'bg-black text-white border border-black hover:bg-gray-900'
+                                ? 'booking-outline-btn'
+                                : 'booking-primary-btn'
                             }`}
                           >
                             {selected ? (

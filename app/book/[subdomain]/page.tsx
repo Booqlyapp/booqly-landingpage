@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'next/navigation';
 import SubdomainNavbar from '@/components/subdomain-navbar';
 import BookingStepHeader from '@/components/booking/booking-step-header';
+import PageColorsEditor from '@/components/booking/page-colors-editor';
 import { Service, ServiceAddOn, Marketplace, BookingData } from '@/lib/types';
 import { getMarketplaceByCustomLink } from '@/lib/api';
 import ServiceListing from '@/components/booking/service-listing';
@@ -12,6 +13,11 @@ import StylistSelection from '@/components/booking/stylist-selection';
 import DateTimeSelection from '@/components/booking/datetime-selection';
 import CustomerDetails from '@/components/booking/customer-details';
 import StripeWrapper from '@/components/booking/stripe-wrapper';
+import {
+  BookingPageColors,
+  colorsToCssVars,
+  normalizeBookingPageColors,
+} from '@/lib/booking-page-colors';
 
 function serviceHasActiveAddOns(service: Service | undefined): boolean {
   return Boolean(
@@ -80,6 +86,11 @@ export default function BookingPage() {
     marketingConsent: false,
     notes: '',
   });
+  const [pageColors, setPageColors] = useState<BookingPageColors>(
+    normalizeBookingPageColors(null)
+  );
+  const [editToken, setEditToken] = useState<string | null>(null);
+  const [colorsEditorOpen, setColorsEditorOpen] = useState(false);
 
   useEffect(() => {
     async function fetchMarketplace() {
@@ -87,6 +98,7 @@ export default function BookingPage() {
         setLoading(true);
         const data = await getMarketplaceByCustomLink(subdomain);
         setMarketplace(data);
+        setPageColors(normalizeBookingPageColors(data?.bookingPageColors));
       } catch (err) {
         setError('Marketplace not found');
         console.error(err);
@@ -99,6 +111,26 @@ export default function BookingPage() {
       fetchMarketplace();
     }
   }, [subdomain]);
+
+  // Owner/provider edit mode: ?editColors=1#access_token=JWT
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const query = new URLSearchParams(window.location.search);
+    if (query.get('editColors') !== '1') return;
+
+    const hash = window.location.hash.replace(/^#/, '');
+    const hashParams = new URLSearchParams(hash);
+    const token =
+      hashParams.get('access_token') || query.get('access_token');
+
+    if (token) {
+      setEditToken(token);
+      setColorsEditorOpen(true);
+      // Strip token from the URL so it is not left in history/share links.
+      window.history.replaceState({}, '', `${window.location.pathname}?editColors=1`);
+    }
+  }, []);
 
   // Keep booking steps in browser history so mobile/web Back goes
   // to the previous step instead of leaving the custom link.
@@ -222,8 +254,11 @@ export default function BookingPage() {
             ? 5
             : 1;
 
+  const themeStyle = useMemo(() => colorsToCssVars(pageColors), [pageColors]);
+  const canEditColors = Boolean(editToken && marketplace?.id);
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="booking-themed min-h-screen" style={themeStyle}>
       {currentStep === 0 && (
         <SubdomainNavbar
           businessName={marketplace.businessName}
@@ -234,6 +269,9 @@ export default function BookingPage() {
               ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
           }}
           navItems={listingNavItems}
+          onEditColors={
+            canEditColors ? () => setColorsEditorOpen(true) : undefined
+          }
         />
       )}
 
@@ -294,6 +332,17 @@ export default function BookingPage() {
           )}
       </div>
 
+      {canEditColors && editToken && (
+        <PageColorsEditor
+          marketplaceId={marketplace.id}
+          accessToken={editToken}
+          headerImageUrl={marketplace.bookingPageHeaderImage}
+          initialColors={pageColors}
+          open={colorsEditorOpen}
+          onClose={() => setColorsEditorOpen(false)}
+          onColorsChange={setPageColors}
+        />
+      )}
     </div>
   );
 }

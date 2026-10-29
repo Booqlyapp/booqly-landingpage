@@ -84,6 +84,12 @@ export interface Marketplace {
   bookingPageSubtitle?: string;
   bookingPageHeaderImage?: string;
   bookingPageHeaderPdf?: string;
+  bookingPageColors?: {
+    pageBackground?: string;
+    text?: string;
+    buttons?: string;
+    buttonText?: string | null;
+  } | null;
   userId?: string;
   services: Service[];
   schedule?: Schedule;

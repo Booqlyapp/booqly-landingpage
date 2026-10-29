@@ -79,7 +79,26 @@ body {
   bottom: 0 !important;
   z-index: 9999 !important;
   width: 100% !important;
-  background: #fff !important;
-  border-top: 1px solid #e5e7eb;
+  background: var(--booking-bg, #fff) !important;
+  border-top: 1px solid color-mix(in srgb, var(--booking-text, #111) 12%, transparent);
+  color: var(--booking-text, #111);
+}
+
+.booking-themed {
+  background-color: var(--booking-bg, #ffffff);
+  color: var(--booking-text, #111111);
+  min-height: 100vh;
+}
+
+.booking-themed .booking-primary-btn {
+  background-color: var(--booking-btn, #111111) !important;
+  color: var(--booking-btn-text, #ffffff) !important;
+  border-color: var(--booking-btn, #111111) !important;
+}
+
+.booking-themed .booking-outline-btn {
+  color: var(--booking-text, #111111) !important;
+  border-color: var(--booking-text, #111111) !important;
+  background-color: transparent !important;
 }
 
