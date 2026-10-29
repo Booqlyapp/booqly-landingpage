@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Outfit, Manrope } from "next/font/google";
+import { Inter, Outfit, Manrope, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({
@@ -16,6 +16,12 @@ const outfit = Outfit({
 
 const manrope = Manrope({
   variable: "--font-manrope",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
   display: "swap",
 });
@@ -74,7 +80,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${outfit.variable} ${manrope.variable} h-full antialiased`}
+      className={`${inter.variable} ${outfit.variable} ${manrope.variable} ${playfair.variable} h-full antialiased`}
       style={{ colorScheme: 'light' }}
     >
       <head>

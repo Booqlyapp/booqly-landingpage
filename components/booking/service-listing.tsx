@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { Marketplace, Service, ServiceAddOn } from '@/lib/types';
@@ -8,7 +8,6 @@ import AddOnsModal from './addons-modal';
 import ReviewsSection from './reviews-section';
 import PoweredBy from './powered-by';
 
-// Dynamically import react-pdf to avoid SSR issues
 const Document = dynamic(
   () => import('react-pdf').then((mod) => mod.Document),
   { ssr: false }
@@ -19,7 +18,6 @@ const Page = dynamic(
   { ssr: false }
 );
 
-// Configure PDF.js worker (will run on client only)
 if (typeof window !== 'undefined') {
   import('react-pdf').then((pdfjs) => {
     pdfjs.pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.pdfjs.version}/build/pdf.worker.min.mjs`;
@@ -33,38 +31,57 @@ interface ServiceListingProps {
   onProceedToBooking: (selectedServices: Service[]) => void;
 }
 
-export default function ServiceListing({ marketplace, selectedServices, setSelectedServices, onProceedToBooking }: ServiceListingProps) {
+function formatDuration(duration: string | number | undefined): string {
+  if (duration == null || duration === '') return '';
+  const raw = String(duration).trim();
+  if (/min|hr|hour/i.test(raw)) return raw;
+  const n = Number(raw);
+  if (!Number.isNaN(n)) {
+    if (n >= 60 && n % 60 === 0) {
+      const hours = n / 60;
+      return hours === 1 ? '1 hour' : `${hours} hours`;
+    }
+    return `${n} min`;
+  }
+  return raw;
+}
+
+export default function ServiceListing({
+  marketplace,
+  selectedServices,
+  setSelectedServices,
+  onProceedToBooking,
+}: ServiceListingProps) {
   const [addOnsModalOpen, setAddOnsModalOpen] = useState(false);
   const [currentService, setCurrentService] = useState<Service | null>(null);
   const [numPages, setNumPages] = useState<number | null>(null);
-  const [pdfWidth, setPdfWidth] = useState<number>(800);
+  const [pdfWidth, setPdfWidth] = useState<number>(390);
+  const [expandedDescriptions, setExpandedDescriptions] = useState<
+    Record<string, boolean>
+  >({});
 
   useEffect(() => {
     const updateWidth = () => {
       if (typeof window !== 'undefined') {
-        setPdfWidth(Math.min(window.innerWidth - 100, 800));
+        setPdfWidth(Math.min(window.innerWidth, 768));
       }
     };
-    
     updateWidth();
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
 
   const handleAddToCart = (service: Service) => {
-    if (selectedServices.find(s => s.id === service.id)) {
-      // Remove from cart (deselect)
+    if (selectedServices.find((s) => s.id === service.id)) {
       setSelectedServices([]);
     } else {
-      // Check if service has active addons
-      const hasAddOns = service.addOns && service.addOns.some(addon => addon.isActive);
+      const hasAddOns =
+        service.addOns && service.addOns.some((addon) => addon.isActive);
 
       if (hasAddOns) {
-        // Show addons modal
         setCurrentService(service);
         setAddOnsModalOpen(true);
       } else {
-        // Replace with new service (single selection)
         setSelectedServices([service]);
       }
     }
@@ -72,7 +89,6 @@ export default function ServiceListing({ marketplace, selectedServices, setSelec
 
   const handleAddOnsConfirm = (selectedAddOns: ServiceAddOn[]) => {
     if (currentService) {
-      // Replace with service with selected addons (single selection)
       const serviceWithAddOns = {
         ...currentService,
         selectedAddOns,
@@ -82,285 +98,347 @@ export default function ServiceListing({ marketplace, selectedServices, setSelec
     }
   };
 
-  const isInCart = (serviceId: string) => {
-    return selectedServices.some(s => s.id === serviceId);
-  };
+  const isInCart = (serviceId: string) =>
+    selectedServices.some((s) => s.id === serviceId);
 
   const totalAmount = selectedServices.reduce((sum, service) => {
-    return sum + Number(service.price);
+    const addOnsTotal = (service.selectedAddOns || []).reduce(
+      (a, addon) => a + Number(addon.price),
+      0
+    );
+    return sum + Number(service.price) + addOnsTotal;
   }, 0);
 
   const formatSchedule = (day: string) => {
-    const schedule = marketplace.schedule?.[day.toLowerCase() as keyof typeof marketplace.schedule];
+    const schedule =
+      marketplace.schedule?.[
+        day.toLowerCase() as keyof typeof marketplace.schedule
+      ];
     if (!schedule || typeof schedule === 'string') {
-      return schedule || 'Closed';
+      return (schedule as string) || 'Closed';
     }
-    return schedule.isOpen ? `${schedule.startTime} - ${schedule.endTime}` : 'Closed';
+    return schedule.isOpen
+      ? `${schedule.startTime} - ${schedule.endTime}`
+      : 'Closed';
   };
 
+  const isClosedDay = (scheduleText: string) => {
+    const t = scheduleText.trim().toLowerCase();
+    return !t || t === 'closed' || t === '—';
+  };
+
+  const hasBio = Boolean(marketplace.bio?.trim());
+  const hasPolicies = Boolean(
+    marketplace.showPolicyRules && marketplace.policyRules?.trim()
+  );
+  const hasReviews = Boolean(
+    marketplace.reviews?.some((r) => r.status === 'approved' && r.isPublic)
+  );
+  const hasSchedule = Boolean(marketplace.schedule);
+  const hasHeaderMedia = Boolean(
+    marketplace.bookingPageHeaderPdf || marketplace.bookingPageHeaderImage
+  );
+
+  const days = useMemo(
+    () => [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ],
+    []
+  );
+
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 md:pb-0">
-      {/* Hero Header */}
-      <div className="relative bg-gradient-to-br from-blue-50 to-purple-50 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 md:pt-12 pb-8">
-          <div className="flex flex-col items-center text-center">
-            {/* Title */}
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 mb-4">
-              {marketplace.bookingPageTitle || 'Book your perfect service'}
-            </h1>
-            
-            {/* Description */}
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl">
-              {marketplace.bookingPageSubtitle || 'Look your best, feel your best.'}
-            </p>
-            
-            {/* Image or PDF - Centered */}
-            <div className="relative w-full flex items-center justify-center">
-              {marketplace.bookingPageHeaderPdf ? (
-                <div className="w-full flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-white shadow-lg">
-                  <Document
-                    file={marketplace.bookingPageHeaderPdf}
-                    onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-                    loading={
-                      <div className="flex items-center justify-center h-64">
-                        <div className="text-gray-500">Loading PDF...</div>
-                      </div>
-                    }
-                    error={
-                      <div className="flex items-center justify-center h-64">
-                        <div className="text-red-500">Failed to load PDF</div>
-                      </div>
-                    }
-                    className="w-full"
-                  >
-                    {numPages && Array.from(new Array(numPages), (el, index) => (
-                      <Page
-                        key={`page_${index + 1}`}
-                        pageNumber={index + 1}
-                        width={pdfWidth}
-                        renderTextLayer={false}
-                        renderAnnotationLayer={false}
-                        className="mb-4"
-                      />
-                    ))}
-                  </Document>
-                </div>
-              ) : (
-                <div className="relative w-full max-w-md h-64 md:h-80">
-                  <Image
-                    src={marketplace.bookingPageHeaderImage || "/images/woman.png"}
-                    alt="Beauty Services"
-                    fill
-                    className="object-contain object-center"
-                    priority
-                  />
-                </div>
+    <div className="min-h-screen bg-white pb-28 md:pb-10">
+      {/* Hero: uploaded header image or PDF */}
+      {hasHeaderMedia ? (
+        <div className="w-full bg-white">
+          {marketplace.bookingPageHeaderPdf ? (
+            <div className="w-full flex flex-col items-center bg-white">
+              <Document
+                file={marketplace.bookingPageHeaderPdf}
+                onLoadSuccess={({ numPages: n }) => setNumPages(n)}
+                loading={
+                  <div className="flex items-center justify-center h-64 w-full">
+                    <div className="text-gray-500 text-sm">Loading…</div>
+                  </div>
+                }
+                error={
+                  <div className="flex items-center justify-center h-40 w-full">
+                    <div className="text-red-500 text-sm">Failed to load PDF</div>
+                  </div>
+                }
+                className="w-full"
+              >
+                {numPages &&
+                  Array.from(new Array(numPages), (_, index) => (
+                    <Page
+                      key={`page_${index + 1}`}
+                      pageNumber={index + 1}
+                      width={pdfWidth}
+                      renderTextLayer={false}
+                      renderAnnotationLayer={false}
+                      className="!m-0 w-full"
+                    />
+                  ))}
+              </Document>
+            </div>
+          ) : (
+            <div className="relative w-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={marketplace.bookingPageHeaderImage!}
+                alt={marketplace.businessName}
+                className="w-full h-auto block object-cover object-top max-h-[80vh]"
+              />
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="w-full px-4 sm:px-6 pt-8 pb-2 max-w-3xl mx-auto">
+          {(marketplace.bookingPageTitle || marketplace.bookingPageSubtitle) && (
+            <div className="text-center mb-2">
+              {marketplace.bookingPageTitle && (
+                <h2 className="font-booking-serif text-3xl font-bold text-black mb-2">
+                  {marketplace.bookingPageTitle}
+                </h2>
+              )}
+              {marketplace.bookingPageSubtitle && (
+                <p className="text-gray-600 text-base">
+                  {marketplace.bookingPageSubtitle}
+                </p>
               )}
             </div>
-          </div>
+          )}
         </div>
-      </div>
-      {/* Action Bar - Sticky, only shown when service selected */}
+      )}
+
+      {/* Desktop sticky book bar when selected */}
       {selectedServices.length > 0 && (
-        <div className="sticky top-20 z-40 hidden md:block">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-[#759CC9] rounded-2xl shadow-lg p-4 md:p-6 my-4">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                <div className="flex items-center gap-4">
-                  <button
-                    onClick={() => window.location.href = '/'}
-                    className="bg-white p-2 rounded-full hover:bg-gray-100 transition-colors"
-                  >
-                    <Image
-                      src="/images/home.svg"
-                      alt="Home"
-                      width={24}
-                      height={24}
-                      className="w-8 h-8 filter brightness-0 invert-0"
-                    />
-                  </button>
-                  <button
-                    onClick={() => setSelectedServices([])}
-                    className="text-white font-semibold text-lg hover:text-gray-200 transition-colors"
-                  >
-                    Clear Selection
-                  </button>
-                </div>
-                <button
-                  onClick={() => onProceedToBooking(selectedServices)}
-                  className="bg-white px-8 py-3 rounded-full font-semibold text-lg hover:bg-gray-100 transition-colors flex items-center gap-2 shadow-md"
-                >
-                  Book Service
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                  </svg>
-                </button>
-              </div>
+        <div className="sticky top-[6.5rem] z-40 hidden md:block">
+          <div className="max-w-3xl mx-auto px-4 sm:px-6">
+            <div className="bg-black text-white rounded-xl shadow-lg p-4 my-3 flex items-center justify-between gap-4">
+              <button
+                type="button"
+                onClick={() => setSelectedServices([])}
+                className="text-sm font-medium text-white/80 hover:text-white"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => onProceedToBooking(selectedServices)}
+                className="bg-white text-black px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
+              >
+                Book · ${totalAmount.toFixed(2)}
+              </button>
             </div>
           </div>
         </div>
       )}
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Title */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900">Choose your service</h2>
-        </div>
 
-        {/* Services Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          {marketplace.services.map((service) => (
-            <div
-              key={service.id}
-              className="bg-white rounded-3xl shadow-md overflow-hidden hover:shadow-xl transition-shadow flex flex-col h-full"
-            >
-              {/* Service Image */}
-              <div className="relative h-56 bg-gradient-to-br from-amber-100 to-stone-200">
-                <Image
-                  src={service.imageUrl || '/images/beautybrushes.png'}
-                  alt={service.name}
-                  fill
-                  className="object-cover"
-                />
-              </div>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+        {/* Services */}
+        <section id="services" className="scroll-mt-28 pt-10 pb-4">
+          <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-8">
+            Services
+          </h2>
 
-              {/* Service Details */}
-              <div className="p-6 flex flex-col flex-1">
-                <h3 className="text-2xl font-bold text-gray-900 mb-3">{service.name}</h3>
-                <p className="text-gray-500 text-base mb-6 line-clamp-2">{service.description}</p>
+          {marketplace.services.length === 0 ? (
+            <p className="text-gray-500 py-8">No services available at this time.</p>
+          ) : (
+            <div className="divide-y divide-gray-200">
+              {marketplace.services.map((service) => {
+                const selected = isInCart(service.id);
+                const description = service.description?.trim() || '';
+                const isLong = description.length > 140;
+                const expanded = expandedDescriptions[service.id];
+                const shownDescription =
+                  !isLong || expanded
+                    ? description
+                    : `${description.slice(0, 140).trimEnd()}…`;
 
-                {/* Duration and Price */}
-                <div className="flex items-center gap-6 mb-6 text-gray-700">
-                  <div className="flex items-center gap-2">
-                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-lg font-medium">{service.duration} min</span>
+                return (
+                  <div key={service.id} className="py-6 first:pt-0">
+                    <div className="flex gap-3 sm:gap-4 items-start">
+                      <div className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-md overflow-hidden bg-gray-100 shrink-0">
+                        <Image
+                          src={
+                            service.imageUrl || '/images/beautybrushes.png'
+                          }
+                          alt={service.name}
+                          fill
+                          className="object-cover"
+                        />
+                      </div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <h3 className="font-booking-serif text-xl sm:text-2xl font-bold text-black leading-tight truncate">
+                              {service.name}
+                            </h3>
+                            <p className="text-sm text-gray-700 mt-1">
+                              {formatDuration(service.duration)}
+                              {formatDuration(service.duration) ? ' · ' : ''}
+                              <span className="font-semibold text-black">
+                                ${Number(service.price).toFixed(2)}
+                              </span>
+                            </p>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleAddToCart(service)}
+                            className={`shrink-0 px-4 py-2 rounded-md text-xs font-bold tracking-wide uppercase transition-colors ${
+                              selected
+                                ? 'bg-gray-200 text-black'
+                                : 'bg-black text-white hover:bg-gray-900'
+                            }`}
+                          >
+                            {selected ? 'Selected' : 'Select'}
+                          </button>
+                        </div>
+
+                        {description && (
+                          <div className="mt-3">
+                            <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                              {shownDescription}
+                            </p>
+                            {isLong && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setExpandedDescriptions((prev) => ({
+                                    ...prev,
+                                    [service.id]: !prev[service.id],
+                                  }))
+                                }
+                                className="mt-2 text-xs font-bold tracking-wide uppercase text-black"
+                              >
+                                {expanded ? 'Show less' : 'Show all'}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  {/* Vertical Divider */}
-                  <div className="h-4 w-[1px] bg-gray-300 mx-1"></div>
-                  <div className="flex items-center gap-2">
-                    <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <span className="text-lg font-bold">${Number(service.price).toFixed(2)}</span>
-                  </div>
-                </div>
-
-                {/* Book Button */}
-                <button
-                  onClick={() => handleAddToCart(service)}
-                  className={`w-full py-3.5 rounded-2xl font-bold text-lg transition-all bg-[#759CC9] text-white mt-auto `}
-                >
-                  {isInCart(service.id) ? 'Added ✓' : 'Book'}
-                </button>
-              </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
+          )}
+        </section>
 
-        {/* Empty State */}
-        {marketplace.services.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No services available at this time.</p>
-          </div>
-        )}
-
-        {/* Reviews Section */}
-        {marketplace.reviews && marketplace.reviews.length > 0 && (
+        {hasReviews && marketplace.reviews && (
           <ReviewsSection reviews={marketplace.reviews} />
         )}
 
-        {/* Policy/Rules Section */}
-        {marketplace.showPolicyRules && marketplace.policyRules && (
-          <div className="mt-16">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Privacy & Rules</h2>
-            <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-gray-200">
-              <div className="prose prose-gray max-w-none">
-                <p className="text-gray-700 whitespace-pre-wrap">{marketplace.policyRules}</p>
-              </div>
-            </div>
-          </div>
+        {hasBio && (
+          <section
+            id="about"
+            className="scroll-mt-28 py-10 border-t border-gray-100"
+          >
+            <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-5">
+              About
+            </h2>
+            <p className="text-[15px] sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {marketplace.bio}
+            </p>
+          </section>
         )}
 
-        {/* Availability Section */}
-        {marketplace.schedule && (
-          <div className="mt-16">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Salon availability</h2>
-            <div className="bg-white rounded-2xl shadow-md p-6 md:p-8 border border-gray-200">
-              <div className="space-y-3">
-                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day) => {
+        {hasPolicies && (
+          <section
+            id="policies"
+            className="scroll-mt-28 py-10 border-t border-gray-100"
+          >
+            <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-5">
+              Policies &amp; Rules
+            </h2>
+            <p className="text-[15px] sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+              {marketplace.policyRules}
+            </p>
+          </section>
+        )}
+
+        {hasSchedule && (
+          <section
+            id="hours"
+            className="scroll-mt-28 py-10 border-t border-gray-100"
+          >
+            <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-6">
+              Opening hours
+            </h2>
+            <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+              <div className="divide-y divide-gray-100">
+                {days.map((day) => {
                   const schedule = formatSchedule(day);
-                  const isClosed = schedule === 'closed';
+                  const closed = isClosedDay(String(schedule));
 
                   return (
-                    <div key={day} className="flex items-center justify-between py-4 border-b border-gray-100 last:border-0">
-                      <div className="flex items-center gap-3 md:gap-4">
-                        {/* Calendar Icon */}
-                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                          isClosed ? 'bg-red-50' : 'bg-blue-50'
-                        }`}>
-                          <svg className={`w-6 h-6 ${isClosed ? 'text-red-500' : 'text-[#759CC9]'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                        </div>
-                        
-                        {/* Day name with time below on mobile */}
-                        <div className="flex flex-col">
-                          <span className="font-semibold text-gray-900 text-base">{day}</span>
-                          {!isClosed && <span className="text-sm text-gray-600 md:hidden">{schedule}</span>}
-                        </div>
-                      </div>
-                      
-                      {/* Time and Badge on right side */}
-                      <div className="flex items-center gap-4">
-                        {/* Time - hidden on mobile, shown on desktop */}
-                        {!isClosed && <span className="hidden md:block text-gray-700">{schedule}</span>}
-                        
-                        {/* Bookable/Closed Badge */}
-                        <span className={`font-medium text-sm px-4 py-1.5 rounded-full whitespace-nowrap ${isClosed
-                          ? 'text-red-500 bg-red-50'
-                          : 'text-[#759CC9] bg-blue-50'
-                          }`}>
-                          {isClosed ? 'Closed' : 'Bookable'}
-                        </span>
-                      </div>
+                    <div
+                      key={day}
+                      className="flex items-center gap-2 sm:gap-4 px-4 py-3.5"
+                    >
+                      <span className="w-[5.5rem] sm:w-28 text-sm font-medium text-black shrink-0">
+                        {day}
+                      </span>
+                      <span className="flex-1 text-sm text-gray-600 text-center sm:text-left">
+                        {closed ? '—' : schedule}
+                      </span>
+                      <span
+                        className={`shrink-0 inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
+                          closed
+                            ? 'bg-gray-100 text-gray-600'
+                            : 'bg-emerald-50 text-emerald-700'
+                        }`}
+                      >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full ${
+                            closed ? 'bg-gray-400' : 'bg-emerald-500'
+                          }`}
+                        />
+                        {closed ? 'Closed' : 'Open'}
+                      </span>
                     </div>
                   );
                 })}
               </div>
             </div>
-          </div>
+          </section>
         )}
+
+        <div className="pt-4 pb-8">
+          <PoweredBy />
+        </div>
       </div>
 
-      {/* Powered by Booqly */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <PoweredBy />
-      </div>
-
-      {/* Floating Cart Summary - Mobile */}
+      {/* Mobile sticky cart */}
       {selectedServices.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-[#759CC9] text-white p-4 shadow-lg md:hidden z-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm opacity-90">Service selected</p>
-              <p className="text-xl font-bold">${totalAmount.toFixed(2)}</p>
+        <div className="fixed bottom-0 left-0 right-0 bg-black text-white p-4 shadow-lg md:hidden z-50 safe-area-pb">
+          <div className="flex items-center justify-between gap-3 max-w-3xl mx-auto">
+            <div className="min-w-0">
+              <p className="text-xs text-white/70 truncate">
+                {selectedServices[0]?.name || 'Service selected'}
+              </p>
+              <p className="text-lg font-bold">${totalAmount.toFixed(2)}</p>
             </div>
             <button
+              type="button"
               onClick={() => onProceedToBooking(selectedServices)}
-              className="bg-white text-[#759CC9] px-6 py-3 rounded-lg font-medium hover:bg-gray-100 transition-colors flex items-center gap-2"
+              className="bg-white text-black px-5 py-3 rounded-lg font-semibold text-sm hover:bg-gray-100 transition-colors"
             >
-              View Booking
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-              </svg>
+              Continue
             </button>
           </div>
         </div>
       )}
 
-      {/* Add-Ons Modal */}
       {currentService && (
         <AddOnsModal
           service={currentService}

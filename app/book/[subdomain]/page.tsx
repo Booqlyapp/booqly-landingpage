@@ -102,12 +102,29 @@ export default function BookingPage() {
     }
   };
 
+  const listingNavItems =
+    currentStep === 0
+      ? [
+          { id: 'services', label: 'Services' },
+          ...(marketplace.bio?.trim()
+            ? [{ id: 'about', label: 'About' }]
+            : []),
+          ...(marketplace.showPolicyRules && marketplace.policyRules?.trim()
+            ? [{ id: 'policies', label: 'Policies & Rules' }]
+            : []),
+          ...(marketplace.schedule
+            ? [{ id: 'hours', label: 'Hours' }]
+            : []),
+        ]
+      : [];
+
   return (
     <div className="min-h-screen bg-white">
       <SubdomainNavbar 
         businessName={marketplace.businessName} 
         cartCount={selectedServices.length}
         onCartClick={() => setCurrentStep(0)}
+        navItems={listingNavItems}
       />
 
       {/* Progress Indicator - Hidden on step 0 (service listing) */}

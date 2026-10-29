@@ -13,6 +13,11 @@
   --font-inter: var(--font-inter);
   --font-outfit: var(--font-outfit);
   --font-manrope: var(--font-manrope);
+  --font-playfair: var(--font-playfair);
+}
+
+.font-booking-serif {
+  font-family: var(--font-playfair), ui-serif, Georgia, serif;
 }
 
 /* Force light mode - disable dark mode completely */
@@ -29,4 +34,13 @@ body {
 /* Prevent any dark mode color changes */
 * {
   color-scheme: light only;
+}
+
+/* Hide scrollbar for booking section nav on mobile */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
