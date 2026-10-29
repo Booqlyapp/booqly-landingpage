@@ -142,6 +142,8 @@ export default function ServiceListing({
   const hasHeaderMedia = Boolean(
     marketplace.bookingPageHeaderPdf || marketplace.bookingPageHeaderImage
   );
+  const aboutText = richTextToPlain(marketplace.bio);
+  const policiesText = richTextToPlain(marketplace.policyRules);
 
   const days = useMemo(
     () => [
@@ -344,9 +346,9 @@ export default function ServiceListing({
           <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-5">
             About
           </h2>
-          {richTextToPlain(marketplace.bio) ? (
+          {aboutText ? (
             <p className="text-[15px] sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {richTextToPlain(marketplace.bio)}
+              {aboutText}
             </p>
           ) : null}
         </section>
@@ -358,9 +360,9 @@ export default function ServiceListing({
           <h2 className="font-booking-serif text-3xl sm:text-4xl font-bold text-black mb-5">
             Policies &amp; Rules
           </h2>
-          {richTextToPlain(marketplace.policyRules) ? (
+          {policiesText ? (
             <p className="text-[15px] sm:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-              {richTextToPlain(marketplace.policyRules)}
+              {policiesText}
             </p>
           ) : null}
         </section>
