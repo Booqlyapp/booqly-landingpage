@@ -7,7 +7,7 @@ import { Marketplace, Service } from '@/lib/types';
 import { richTextToPlain } from '@/lib/rich-text';
 import ReviewsSection from './reviews-section';
 import PoweredBy from './powered-by';
-import AppointmentSummaryFooter from './appointment-summary-footer';
+import ServiceContinueBar from './service-continue-bar';
 
 const Document = dynamic(
   () => import('react-pdf').then((mod) => mod.Document),
@@ -133,7 +133,7 @@ export default function ServiceListing({
   );
 
   return (
-    <div className="min-h-screen bg-white pb-10">
+    <div className={`min-h-screen bg-white ${selected ? 'pb-28' : 'pb-10'}`}>
       {/* Hero: full uploaded header image or PDF — no crop / edge cut */}
       {hasHeaderMedia ? (
         <div ref={headerMediaRef} className="w-full bg-white overflow-x-hidden">
@@ -388,20 +388,17 @@ export default function ServiceListing({
           ) : null}
         </section>
 
-        {selected && (
-          <div className="pt-2 pb-4">
-            <AppointmentSummaryFooter
-              service={selected}
-              selectedAddOns={selected.selectedAddOns || []}
-              onContinue={() => onProceedToBooking(selectedServices)}
-            />
-          </div>
-        )}
-
         <div className="pt-4 pb-8">
           <PoweredBy />
         </div>
       </div>
+
+      {selected && (
+        <ServiceContinueBar
+          service={selected}
+          onContinue={() => onProceedToBooking(selectedServices)}
+        />
+      )}
     </div>
   );
 }

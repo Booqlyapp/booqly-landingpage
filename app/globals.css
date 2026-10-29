@@ -71,3 +71,15 @@ body {
   max-width: 100% !important;
 }
 
+/* Sticky continue bar — services home only */
+.booking-service-continue-bar {
+  position: fixed !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  z-index: 9999 !important;
+  width: 100% !important;
+  background: #fff !important;
+  border-top: 1px solid #e5e7eb;
+}
+
