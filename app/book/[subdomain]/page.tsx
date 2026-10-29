@@ -200,6 +200,10 @@ export default function BookingPage() {
     setCurrentStep(previousBefore(selectedService, currentStep));
   };
 
+  // Must stay above any early return — conditional hooks crash the page after load.
+  const themeStyle = useMemo(() => colorsToCssVars(pageColors), [pageColors]);
+  const canEditColors = Boolean(editToken && marketplace?.id);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-white">
@@ -253,9 +257,6 @@ export default function BookingPage() {
           : currentStep === 4
             ? 5
             : 1;
-
-  const themeStyle = useMemo(() => colorsToCssVars(pageColors), [pageColors]);
-  const canEditColors = Boolean(editToken && marketplace?.id);
 
   return (
     <div className="booking-themed min-h-screen" style={themeStyle}>
