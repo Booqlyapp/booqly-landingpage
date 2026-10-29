@@ -100,11 +100,38 @@ export default function BookingPage() {
     }
   }, [subdomain]);
 
+  // Keep booking steps in browser history so mobile/web Back goes
+  // to the previous step instead of leaving the custom link.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    window.history.replaceState({ bookingStep: 0 }, '');
+
+    const onPopState = (event: PopStateEvent) => {
+      const step = event.state?.bookingStep;
+      if (typeof step === 'number' && step >= 0 && step <= 4) {
+        setCurrentStep(step);
+        return;
+      }
+      setCurrentStep(0);
+    };
+
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
   const selectedService = selectedServices[0];
+
+  const goToStep = (step: number) => {
+    setCurrentStep(step);
+    if (typeof window !== 'undefined') {
+      window.history.pushState({ bookingStep: step }, '');
+    }
+  };
 
   const handleProceedFromServices = (services: Service[]) => {
     setSelectedServices(services);
-    setCurrentStep(nextAfterServiceExtras(services[0], 'services'));
+    goToStep(nextAfterServiceExtras(services[0], 'services'));
   };
 
   const handleAddOnsContinue = (selectedAddOns: ServiceAddOn[]) => {
@@ -114,7 +141,7 @@ export default function BookingPage() {
       selectedAddOns,
     };
     setSelectedServices([updated]);
-    setCurrentStep(nextAfterServiceExtras(updated, 'addons'));
+    goToStep(nextAfterServiceExtras(updated, 'addons'));
   };
 
   const handleStylistContinue = (selectedProviderId: string | null) => {
@@ -125,15 +152,19 @@ export default function BookingPage() {
         selectedProviderId,
       },
     ]);
-    setCurrentStep(3);
+    goToStep(3);
   };
 
   const handleDateTimeSelect = (date: string, time: string) => {
     setBookingData((prev) => ({ ...prev, date, time }));
-    setCurrentStep(4);
+    goToStep(4);
   };
 
   const handleBack = () => {
+    if (typeof window !== 'undefined' && currentStep > 0) {
+      window.history.back();
+      return;
+    }
     setCurrentStep(previousBefore(selectedService, currentStep));
   };
 
@@ -197,7 +228,11 @@ export default function BookingPage() {
         <SubdomainNavbar
           businessName={marketplace.businessName}
           cartCount={selectedServices.length}
-          onCartClick={() => setCurrentStep(0)}
+          onCartClick={() => {
+            document
+              .getElementById('services')
+              ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }}
           navItems={listingNavItems}
         />
       )}
