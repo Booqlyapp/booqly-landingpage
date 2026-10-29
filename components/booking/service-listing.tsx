@@ -178,24 +178,7 @@ export default function ServiceListing({
             </div>
           )}
         </div>
-      ) : (
-        <div className="w-full px-4 sm:px-6 pt-8 pb-2 max-w-3xl mx-auto">
-          {(marketplace.bookingPageTitle || marketplace.bookingPageSubtitle) && (
-            <div className="text-center mb-2">
-              {marketplace.bookingPageTitle && (
-                <h2 className="font-booking-serif text-3xl font-bold text-black mb-2">
-                  {marketplace.bookingPageTitle}
-                </h2>
-              )}
-              {marketplace.bookingPageSubtitle && (
-                <p className="text-gray-600 text-base">
-                  {marketplace.bookingPageSubtitle}
-                </p>
-              )}
-            </div>
-          )}
-        </div>
-      )}
+      ) : null}
 
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         {/* Services */}
