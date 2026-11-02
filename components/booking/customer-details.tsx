@@ -9,6 +9,7 @@ import {
   ServiceAddOn,
 } from '@/lib/types';
 import {
+  BookingApiError,
   createExternalAppointment,
   createExternalAppointmentWithDeposit,
 } from '@/lib/api';
@@ -29,6 +30,8 @@ interface CustomerDetailsProps {
   bookingData: BookingData;
   setBookingData: (data: BookingData) => void;
   onBack: () => void;
+  /** Same as app: all providers booked → return to date/time step */
+  onProvidersUnavailable?: () => void;
 }
 
 function computeServiceDeposit(service: Service, serviceTotal: number): number {
@@ -67,6 +70,7 @@ export default function CustomerDetails({
   bookingData,
   setBookingData,
   onBack: _onBack,
+  onProvidersUnavailable,
 }: CustomerDetailsProps) {
   const router = useRouter();
   const stripe = useStripe();
@@ -191,6 +195,13 @@ export default function CustomerDetails({
 
       const phone = ensurePhonePrefix(bookingData.phone);
 
+      // null = No Preference → backend auto-assigns least-booked free member
+      const assignedTeamMemberId =
+        service.selectedProviderId &&
+        service.selectedProviderId !== '__no_preference__'
+          ? service.selectedProviderId
+          : null;
+
       const appointmentData = {
         marketplaceId: marketplace.id,
         services: servicesPayload,
@@ -207,6 +218,7 @@ export default function CustomerDetails({
         acceptedTerms: bookingData.acceptedTerms,
         marketingConsent: bookingData.marketingConsent,
         notes: bookingData.notes?.trim() || undefined,
+        assignedTeamMemberId,
       };
 
       if (requiresDeposit) {
@@ -264,10 +276,21 @@ export default function CustomerDetails({
       localStorage.setItem('bookingSuccessData', JSON.stringify(successData));
       router.push(`/book/${marketplace.customLink}/success`);
     } catch (err) {
-      setError(
-        (err as Error).message || 'Failed to create booking. Please try again.'
-      );
+      const message =
+        (err as Error).message || 'Failed to create booking. Please try again.';
+      setError(message);
       console.error(err);
+
+      const reason =
+        err instanceof BookingApiError
+          ? err.reason
+          : (err as { reason?: string }).reason;
+      if (
+        reason === 'all_providers_booked' ||
+        reason === 'provider_occupied'
+      ) {
+        onProvidersUnavailable?.();
+      }
     } finally {
       setLoading(false);
     }

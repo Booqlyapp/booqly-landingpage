@@ -72,7 +72,17 @@ export async function getBookableDates(
   }
 }
 
-export async function createExternalAppointment(appointmentData: {
+export class BookingApiError extends Error {
+  reason?: string;
+
+  constructor(message: string, reason?: string) {
+    super(message);
+    this.name = 'BookingApiError';
+    this.reason = reason;
+  }
+}
+
+type ExternalAppointmentPayload = {
   marketplaceId: string;
   services: Array<{
     serviceId: string;
@@ -89,7 +99,22 @@ export async function createExternalAppointment(appointmentData: {
   acceptedTerms: boolean;
   marketingConsent: boolean;
   notes?: string;
-}) {
+  /** null / omitted = No Preference (auto-assign least-booked free member) */
+  assignedTeamMemberId?: string | null;
+};
+
+function throwBookingError(errorBody: {
+  message?: string;
+  reason?: string;
+  data?: { reason?: string };
+}, fallback: string): never {
+  const reason = errorBody.reason || errorBody.data?.reason;
+  throw new BookingApiError(errorBody.message || fallback, reason);
+}
+
+export async function createExternalAppointment(
+  appointmentData: ExternalAppointmentPayload
+) {
   try {
     const response = await fetch(`${API_BASE_URL}/public/book`, {
       method: 'POST',
@@ -100,8 +125,8 @@ export async function createExternalAppointment(appointmentData: {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create appointment');
+      const error = await response.json().catch(() => ({}));
+      throwBookingError(error, 'Failed to create appointment');
     }
 
     const data = await response.json();
@@ -112,25 +137,9 @@ export async function createExternalAppointment(appointmentData: {
   }
 }
 
-export async function createExternalAppointmentWithDeposit(appointmentData: {
-  marketplaceId: string;
-  services: Array<{
-    serviceId: string;
-    addOnIds: string[];
-  }>;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  dateTime: string;
-  price: number;
-  depositAmount?: number;
-  remainingBalance?: number;
-  acceptedTerms: boolean;
-  marketingConsent: boolean;
-  notes?: string;
-  paymentMethodId: string;
-}) {
+export async function createExternalAppointmentWithDeposit(
+  appointmentData: ExternalAppointmentPayload & { paymentMethodId: string }
+) {
   try {
     const response = await fetch(`${API_BASE_URL}/public/book-with-deposit`, {
       method: 'POST',
@@ -141,8 +150,8 @@ export async function createExternalAppointmentWithDeposit(appointmentData: {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to create appointment with deposit');
+      const error = await response.json().catch(() => ({}));
+      throwBookingError(error, 'Failed to create appointment with deposit');
     }
 
     const data = await response.json();

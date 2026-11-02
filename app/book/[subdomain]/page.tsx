@@ -328,6 +328,10 @@ export default function BookingPage() {
                 bookingData={bookingData}
                 setBookingData={setBookingData}
                 onBack={handleBack}
+                onProvidersUnavailable={() => {
+                  setBookingData((prev) => ({ ...prev, time: null }));
+                  goToStep(3);
+                }}
               />
             </StripeWrapper>
           )}
