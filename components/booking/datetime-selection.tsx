@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Service, Marketplace } from '@/lib/types';
 import { getAvailableTimeSlots, getBookableDates } from '@/lib/api';
 import { formatLocalDateYmd } from '@/lib/wall-clock';
+import { resolveStylistLabel } from '@/lib/booking-stylist';
 import AppointmentSummaryFooter from './appointment-summary-footer';
 
 interface DateTimeSelectionProps {
@@ -134,19 +135,7 @@ export default function DateTimeSelection({
     onSelectDateTime(formatLocalDateYmd(selectedDate), selectedTime);
   };
 
-  const stylistLabel = (() => {
-    if (!service) return null;
-    if (service.selectedProviderId) {
-      const member = service.providerTeamMembers?.find(
-        (m) => m.id === service.selectedProviderId
-      );
-      return member ? `With ${member.name}` : 'With selected stylist';
-    }
-    if (service.providerTeamMembers && service.providerTeamMembers.length > 0) {
-      return 'With First available stylist';
-    }
-    return null;
-  })();
+  const stylistLabel = service ? resolveStylistLabel(service) : null;
 
   const selectedDateLabel = selectedDate
     ? selectedDate.toLocaleDateString('en-US', {

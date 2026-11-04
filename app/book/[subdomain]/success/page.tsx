@@ -16,6 +16,8 @@ interface BookingSuccessData {
   time: string | null;
   total: number;
   businessName: string;
+  /** Selected provider name, or "No preference", or null if service has no team. */
+  professionalName?: string | null;
 }
 
 function formatSeeYouLine(dateStr: string | null, timeStr: string | null): string {
@@ -61,6 +63,14 @@ export default function SuccessPage() {
     bookingData?.time ?? null
   );
 
+  const professionalName = bookingData?.professionalName?.trim() || null;
+  const professionalLine =
+    professionalName == null
+      ? null
+      : professionalName === 'No preference'
+        ? 'No preference'
+        : `With ${professionalName}`;
+
   return (
     <div className="min-h-screen bg-[#F2F2F2] flex flex-col">
       <SubdomainNavbar businessName={bookingData?.businessName || 'Booking'} />
@@ -87,14 +97,20 @@ export default function SuccessPage() {
           You&apos;re booked
         </h1>
 
-        <p className="text-[15px] sm:text-base text-neutral-500 max-w-md mb-10 leading-relaxed">
+        <p className="text-[15px] sm:text-base text-neutral-500 max-w-md leading-relaxed">
           {seeYouLine}
         </p>
+
+        {professionalLine && (
+          <p className="mt-2 text-[15px] sm:text-base font-medium text-black max-w-md">
+            {professionalLine}
+          </p>
+        )}
 
         <a
           href="https://booqlyapp.com"
           rel="noopener noreferrer"
-          className="inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 bg-black text-white rounded-xl font-semibold text-sm tracking-wide uppercase hover:bg-neutral-900 transition-colors"
+          className="mt-10 inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 bg-black text-white rounded-xl font-semibold text-sm tracking-wide uppercase hover:bg-neutral-900 transition-colors"
         >
           Back to Home
         </a>

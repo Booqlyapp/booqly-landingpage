@@ -14,6 +14,11 @@ import {
   createExternalAppointmentWithDeposit,
 } from '@/lib/api';
 import { formatWallClockDateTime, parseLocalYmd } from '@/lib/wall-clock';
+import {
+  NO_PREFERENCE_ID,
+  resolveProfessionalName,
+  resolveStylistLabel,
+} from '@/lib/booking-stylist';
 import AppointmentSummaryFooter from './appointment-summary-footer';
 import {
   CardNumberElement,
@@ -160,19 +165,7 @@ export default function CustomerDetails({
   const canSubmit =
     formValid && (!requiresDeposit || (Boolean(stripe) && cardComplete)) && !loading;
 
-  const stylistLabel = (() => {
-    if (!service) return null;
-    if (service.selectedProviderId) {
-      const member = service.providerTeamMembers?.find(
-        (m) => m.id === service.selectedProviderId
-      );
-      return member ? `With ${member.name}` : 'With selected stylist';
-    }
-    if (service.providerTeamMembers && service.providerTeamMembers.length > 0) {
-      return 'With First available stylist';
-    }
-    return null;
-  })();
+  const stylistLabel = service ? resolveStylistLabel(service) : null;
 
   const scheduledLabel =
     bookingData.date && bookingData.time
@@ -226,7 +219,7 @@ export default function CustomerDetails({
       // null = No Preference → backend auto-assigns least-booked free member
       const assignedTeamMemberId =
         service.selectedProviderId &&
-        service.selectedProviderId !== '__no_preference__'
+        service.selectedProviderId !== NO_PREFERENCE_ID
           ? service.selectedProviderId
           : null;
 
@@ -300,6 +293,7 @@ export default function CustomerDetails({
         total: totalPrice,
         depositAmount: requiresDeposit ? depositAmount : 0,
         businessName: marketplace.businessName,
+        professionalName: resolveProfessionalName(service),
       };
       localStorage.setItem('bookingSuccessData', JSON.stringify(successData));
       router.push(`/book/${marketplace.customLink}/success`);
