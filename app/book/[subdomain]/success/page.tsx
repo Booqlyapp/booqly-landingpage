@@ -45,7 +45,7 @@ function formatSeeYouLine(dateStr: string | null, timeStr: string | null): strin
 
 export default function SuccessPage() {
   const params = useParams();
-  const _subdomain = params.subdomain as string;
+  const subdomain = params.subdomain as string;
 
   const [bookingData] = useState<BookingSuccessData | null>(() => {
     if (typeof window !== 'undefined') {
@@ -75,7 +75,7 @@ export default function SuccessPage() {
     <div className="min-h-screen bg-[#F2F2F2] flex flex-col">
       <SubdomainNavbar businessName={bookingData?.businessName || 'Booking'} />
 
-      <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+      <div className="flex-1 flex flex-col items-center justify-start px-6 pt-16 sm:pt-20 pb-12 text-center">
         <div className="w-16 h-16 sm:w-[4.5rem] sm:h-[4.5rem] rounded-full bg-black flex items-center justify-center mb-6">
           <svg
             className="w-8 h-8 sm:w-9 sm:h-9 text-white"
@@ -108,9 +108,8 @@ export default function SuccessPage() {
         )}
 
         <a
-          href="https://booqlyapp.com"
-          rel="noopener noreferrer"
-          className="mt-10 inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 bg-black text-white rounded-xl font-semibold text-sm tracking-wide uppercase hover:bg-neutral-900 transition-colors"
+          href={`/book/${subdomain}`}
+          className="mt-6 inline-flex items-center justify-center min-w-[220px] px-8 py-3.5 bg-black text-white rounded-xl font-semibold text-sm tracking-wide uppercase hover:bg-neutral-900 transition-colors"
         >
           Back to Home
         </a>
