@@ -14,7 +14,6 @@ import {
   createExternalAppointmentWithDeposit,
 } from '@/lib/api';
 import { formatWallClockDateTime, parseLocalYmd } from '@/lib/wall-clock';
-import { richTextToPlain } from '@/lib/rich-text';
 import AppointmentSummaryFooter from './appointment-summary-footer';
 import {
   CardNumberElement,
@@ -44,12 +43,36 @@ function computeServiceDeposit(service: Service, serviceTotal: number): number {
   return amount;
 }
 
-function ensurePhonePrefix(phone: string): string {
-  const trimmed = phone.trim();
-  if (!trimmed) return '+1';
-  if (trimmed.startsWith('+')) return trimmed;
-  if (trimmed.startsWith('1') && trimmed.length > 10) return `+${trimmed}`;
-  return `+1${trimmed.replace(/^\+?1/, '')}`;
+/** US national digits only (no country code), max 10. */
+function usNationalDigits(phone: string): string {
+  let digits = phone.replace(/\D/g, '');
+  if (digits.startsWith('1')) digits = digits.slice(1);
+  return digits.slice(0, 10);
+}
+
+/** Live US display like the mobile app: +1 (XXX) XXX-XXXX */
+function formatUsPhoneInput(phone: string): string {
+  const digits = usNationalDigits(phone);
+  let out = '+1';
+  if (digits.length === 0) return out;
+  if (digits.length <= 3) return `${out} (${digits}`;
+  if (digits.length <= 6) {
+    return `${out} (${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  }
+  return `${out} (${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+}
+
+/** E.164 for a complete valid US number, else null. */
+function toE164Us(phone: string): string | null {
+  const digits = usNationalDigits(phone);
+  // 10 digits; area code and exchange cannot start with 0 or 1
+  if (digits.length !== 10) return null;
+  if (/^[01]/.test(digits) || /^...[01]/.test(digits)) return null;
+  return `+1${digits}`;
+}
+
+function isValidUsPhone(phone: string): boolean {
+  return toE164Us(phone) != null;
 }
 
 const inputClass =
@@ -78,8 +101,6 @@ export default function CustomerDetails({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [cardComplete, setCardComplete] = useState(false);
-  const [showPolicies, setShowPolicies] = useState(false);
-
   const service = selectedServices[0];
 
   useEffect(() => {
@@ -87,8 +108,11 @@ export default function CustomerDetails({
   }, []);
 
   useEffect(() => {
-    if (!bookingData.phone) {
-      setBookingData({ ...bookingData, phone: '+1' });
+    if (!bookingData.phone || !bookingData.phone.startsWith('+1')) {
+      setBookingData({
+        ...bookingData,
+        phone: formatUsPhoneInput(bookingData.phone || ''),
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -130,7 +154,7 @@ export default function CustomerDetails({
     Boolean(bookingData.firstName.trim()) &&
     Boolean(bookingData.lastName.trim()) &&
     Boolean(bookingData.email.trim()) &&
-    bookingData.phone.replace(/\D/g, '').length >= 11 &&
+    isValidUsPhone(bookingData.phone) &&
     bookingData.acceptedTerms;
 
   const canSubmit =
@@ -193,7 +217,11 @@ export default function CustomerDetails({
         addOnIds: (s.selectedAddOns || []).map((addon) => addon.id),
       }));
 
-      const phone = ensurePhonePrefix(bookingData.phone);
+      const phone = toE164Us(bookingData.phone);
+      if (!phone) {
+        setError('Please enter a valid US phone number.');
+        return;
+      }
 
       // null = No Preference → backend auto-assigns least-booked free member
       const assignedTeamMemberId =
@@ -348,15 +376,15 @@ export default function CustomerDetails({
             </label>
             <input
               type="tel"
+              inputMode="numeric"
               value={bookingData.phone}
               onChange={(e) => {
-                let value = e.target.value;
-                if (!value.startsWith('+1')) {
-                  const digits = value.replace(/\D/g, '');
-                  value = `+1${digits.replace(/^1/, '')}`;
-                }
-                setBookingData({ ...bookingData, phone: value });
+                setBookingData({
+                  ...bookingData,
+                  phone: formatUsPhoneInput(e.target.value),
+                });
               }}
+              placeholder="+1 (555) 123-4567"
               required
               autoComplete="tel"
               className={inputClass}
@@ -410,13 +438,15 @@ export default function CustomerDetails({
           />
           <span className="text-sm text-neutral-800 leading-relaxed">
             I&apos;ve read and agree to the{' '}
-            <button
-              type="button"
-              onClick={() => setShowPolicies(true)}
+            <a
+              href="https://booqlyapp.com/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
               className="font-semibold underline underline-offset-2"
             >
               Policies &amp; Rules
-            </button>
+            </a>
             , including the late and cancellation policy.
           </span>
         </label>
@@ -480,39 +510,6 @@ export default function CustomerDetails({
           </div>
         )}
       </form>
-
-      {showPolicies && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[80vh] overflow-y-auto p-5 shadow-xl">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <h3 className="font-booking-serif text-2xl font-bold text-black">
-                Policies &amp; Rules
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowPolicies(false)}
-                className="p-2 rounded-full hover:bg-gray-100"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <p className="text-[15px] text-neutral-700 whitespace-pre-wrap leading-relaxed">
-              {richTextToPlain(marketplace.policyRules) ||
-                'Please contact the provider for their late and cancellation policy.'}
-            </p>
-            <button
-              type="button"
-              onClick={() => setShowPolicies(false)}
-              className="mt-6 w-full bg-black text-white py-3 rounded-xl font-semibold text-sm uppercase"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
