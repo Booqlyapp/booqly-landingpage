@@ -162,6 +162,57 @@ export async function createExternalAppointmentWithDeposit(
   }
 }
 
+export async function getPublicExternalAppointment(appointmentId: string) {
+  const response = await fetch(
+    `${API_BASE_URL}/public/external-appointments/${appointmentId}`,
+    { cache: 'no-store' }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Appointment not found');
+  }
+  return data.data;
+}
+
+export async function cancelPublicExternalAppointment(
+  appointmentId: string,
+  email: string
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/public/external-appointments/${appointmentId}/cancel`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Failed to cancel appointment');
+  }
+  return data.data;
+}
+
+export async function reschedulePublicExternalAppointment(
+  appointmentId: string,
+  email: string,
+  dateTime: string
+) {
+  const response = await fetch(
+    `${API_BASE_URL}/public/external-appointments/${appointmentId}/reschedule`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, dateTime }),
+    }
+  );
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || data.status === false) {
+    throw new Error(data.message || 'Failed to reschedule appointment');
+  }
+  return data.data;
+}
+
 export async function saveBookingPageColors(
   marketplaceId: string,
   bookingPageColors: BookingPageColors,
